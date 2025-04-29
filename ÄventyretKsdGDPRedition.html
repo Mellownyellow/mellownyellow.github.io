@@ -1,0 +1,1161 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ÄventyretGDPRedition</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        /* --- Färgschema & Grundläggande Stilar --- */
+        :root {
+            --color-primary-1: #5A4DB7; --color-primary-2: #26A0BD; --color-primary-3: #3CCCEE;
+            --color-secondary-1: #5A4DB7; --color-secondary-2: #43D0DA; --color-complement: #F7CD02; /* Gul */
+            --color-background: #ffffff; --color-text: #000000; --color-path: #f0f0f0;
+            --color-wall: #888888; --color-house: #b0a090; --color-door: #8c7b6a;
+            --color-furniture: #cccccc; --color-feedback-correct: #28a745; --color-feedback-incorrect: #dc3545;
+            --color-exit-door: #a52a2a;
+            --color-cave-floor: #5c5c5c; --color-cave-wall: #333333; --color-fire: #FF4500;
+            --color-cave2-floor: #4a4a6a; --color-cave2-wall: #2a2a4a;
+            --color-health-full: #ff0000; --color-health-empty: #cccccc;
+            --color-warning: #ffff00;
+            --minimap-bg: rgba(0, 0, 0, 0.6); --minimap-border: var(--color-primary-1);
+            --minimap-wall: #555; --minimap-path: #ccc; --minimap-house: var(--color-house);
+            --minimap-player: var(--color-complement);
+            --color-transition: #d4af37;
+            --color-star-vendor-bg: var(--color-complement);
+            --star-color-1: #FFD700; --star-color-2: #FFA500; --star-color-3: #FF4500; --star-color-4: #FFFFFF;
+            --color-dpia-modal-bg: rgba(42, 42, 74, 0.95);
+            --color-dpia-button: var(--color-primary-3);
+            --color-dpia-button-hover: var(--color-secondary-2);
+            --tile-size: 40px;
+        }
+
+        body {
+            font-family: 'Press Start 2P', cursive; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; min-height: 100vh;
+            background-color: var(--color-background); color: var(--color-text);
+            margin: 0; padding: 20px; box-sizing: border-box;
+            overflow-x: hidden;
+        }
+
+        #game-container {
+            position: relative; border: 4px solid var(--color-text); background-color: var(--color-path);
+            margin-bottom: 15px; overflow: hidden; max-width: 100%;
+        }
+
+        #game-world { display: grid; gap: 0; }
+
+        .cell {
+            width: var(--tile-size); height: var(--tile-size);
+            font-size: calc(var(--tile-size) * 0.7);
+            display: flex; align-items: center; justify-content: center; box-sizing: border-box;
+            transition: transform 0.1s ease-out; overflow: hidden; line-height: 1;
+            position: relative;
+        }
+
+        /* --- Celltyper --- */
+        .grass { background-color: var(--color-path); }
+        .path { background-color: var(--color-path); }
+        .wall { background-color: var(--color-wall); color: var(--color-background); }
+        .house { background-color: var(--color-house); border: 1px solid var(--color-door); }
+        .door { background-color: var(--color-door); cursor: pointer; }
+        .exit-door { background-color: var(--color-exit-door); cursor: pointer; }
+        .furniture { background-color: var(--color-furniture); }
+        .player .emoji { /* No specific style needed */ }
+        .npc { background-color: transparent; cursor: help; }
+        .jump { transform: translateY(-10px); }
+        .transition-zone {
+            background-color: var(--color-transition); cursor: pointer;
+            background-image: repeating-linear-gradient( 45deg, transparent, transparent 5px, rgba(255, 255, 255, 0.2) 5px, rgba(255, 255, 255, 0.2) 10px );
+        }
+        .star-vendor { background-color: var(--color-star-vendor-bg); cursor: pointer; border-radius: 5px; }
+        .hawk { background-color: transparent; }
+        .cave-floor { background-color: var(--color-cave-floor); }
+        .cave-wall { background-color: var(--color-cave-wall); }
+        .cave-entrance { background-color: var(--color-cave-floor); cursor: pointer; }
+        .cave2-floor { background-color: var(--color-cave2-floor); }
+        .cave2-wall { background-color: var(--color-cave2-wall); }
+        .cave2-entrance { background-color: var(--color-cave2-floor); cursor: pointer; }
+        .skull { background-color: transparent; }
+        .fire {
+            background-color: transparent; color: var(--color-fire);
+            animation: flicker 0.5s infinite alternate;
+        }
+        @keyframes flicker { 0% { opacity: 0.7; transform: scale(1); } 100% { opacity: 1; transform: scale(1.1); } }
+
+        .warning-eyes {
+            position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: calc(var(--tile-size) * 0.6);
+            color: var(--color-warning); z-index: 2;
+            animation: pulse 0.7s infinite alternate;
+        }
+        @keyframes pulse { 0% { opacity: 0.5; transform: translate(-50%, -50%) scale(0.9); } 100% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); } }
+
+        /* --- UI Element --- */
+        #ui-top-bar {
+            display: flex; justify-content: space-between; align-items: center;
+            width: 100%; max-width: 800px; margin-bottom: 15px;
+            padding: 0 10px; box-sizing: border-box; flex-wrap: wrap;
+        }
+        #score-board, #health-display {
+            font-size: 1em; background-color: var(--color-primary-1);
+            color: var(--color-background); padding: 8px 15px;
+            border-radius: 5px; border: 2px solid var(--color-text);
+            text-align: center; white-space: nowrap; margin: 5px;
+        }
+        #health-display .heart { color: var(--color-health-full); font-size: 1.2em; margin: 0 1px; display: inline-block; }
+        #health-display .heart.empty { color: var(--color-health-empty); }
+
+        /* --- Quiz Modal --- */
+        #quiz-modal {
+            display: none; position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%); background-color: rgba(90, 77, 183, 0.95);
+            color: var(--color-background); padding: 30px; border: 4px solid var(--color-text);
+            border-radius: 10px; z-index: 10; width: 90%; max-width: 500px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5); text-align: center; box-sizing: border-box;
+        }
+        #quiz-modal h3 { margin-top: 0; font-size: 1.1em; margin-bottom: 20px; line-height: 1.3; }
+        #quiz-modal ul { list-style: none; padding: 0; margin: 0 0 20px 0; }
+        #quiz-modal li {
+            background-color: var(--color-primary-3); color: var(--color-text);
+            padding: 12px; margin: 8px 0; border-radius: 5px; cursor: pointer;
+            transition: background-color 0.2s ease; border: 2px solid var(--color-primary-2);
+            font-size: 0.9em; line-height: 1.3; text-align: left; /* Left align text in list items */
+        }
+        #quiz-modal li:hover { background-color: var(--color-secondary-2); }
+        #quiz-feedback { margin-top: 20px; font-size: 0.9em; min-height: 50px; font-weight: bold; line-height: 1.4; }
+        .feedback-correct { color: var(--color-feedback-correct); }
+        .feedback-incorrect { color: var(--color-feedback-incorrect); }
+        #close-quiz {
+            display: none; margin-top: 15px; padding: 10px 20px;
+            background-color: var(--color-primary-2); color: var(--color-background);
+            border: 2px solid var(--color-text); border-radius: 5px; cursor: pointer;
+            font-family: 'Press Start 2P', cursive; font-size: 0.9em;
+        }
+        #close-quiz:hover { background-color: var(--color-secondary-1); color: var(--color-complement); }
+
+        /* --- Minimap --- */
+        #minimap-container {
+            position: absolute; top: 10px; right: 10px; background-color: var(--minimap-bg);
+            border: 2px solid var(--minimap-border); padding: 5px; border-radius: 5px; z-index: 5;
+            display: none;
+        }
+        #minimap { display: grid; gap: 1px; }
+        .minimap-cell { width: 5px; height: 5px; background-color: var(--minimap-path); }
+        .minimap-wall { background-color: var(--minimap-wall); }
+        .minimap-house { background-color: var(--minimap-house); }
+        .minimap-player { background-color: var(--minimap-player); outline: 1px solid black; }
+        .minimap-cave { background-color: #444; }
+
+        /* --- Star Effect --- */
+        .star-effect {
+            position: absolute; width: 10px; height: 10px;
+            background-color: var(--star-color-1); border-radius: 50%;
+            pointer-events: none; z-index: 100; opacity: 1;
+            animation: starBurst 1.2s ease-out forwards;
+        }
+        @keyframes starBurst { 0% { transform: translate(0, 0) scale(0.5); opacity: 1; } 50% { opacity: 0.8; } 100% { transform: translate(calc(var(--tx, 0) * 1px), calc(var(--ty, 0) * 1px)) scale(0); opacity: 0; } }
+
+        /* --- Message Overlay --- */
+        #message-overlay {
+            display: none; position: absolute; top: 20%; left: 50%;
+            transform: translateX(-50%); background-color: rgba(0, 0, 0, 0.8); color: white;
+            padding: 15px 25px; border-radius: 8px; z-index: 50; font-size: 1em; text-align: center;
+            animation: fadeInOut 2.5s ease-in-out forwards; width: 80%; max-width: 400px;
+        }
+        @keyframes fadeInOut { 0%, 100% { opacity: 0; visibility: hidden; } 10%, 90% { opacity: 1; visibility: visible; } }
+
+        /* --- Cave Timer --- */
+        #cave-timer-display {
+            display: none; position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+            background-color: rgba(0, 0, 0, 0.7); color: white; padding: 5px 15px;
+            border-radius: 5px; z-index: 60; font-size: 1em;
+        }
+
+        /* --- DPIA Minigame UI --- */
+        #dpia-creature {
+            display: none; position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: calc(var(--tile-size) * 2);
+            z-index: 5; animation: creatureBob 2s infinite ease-in-out;
+        }
+        @keyframes creatureBob { 0%, 100% { transform: translate(-50%, -50%) translateY(0); } 50% { transform: translate(-50%, -50%) translateY(-8px); } }
+        #dpia-modal {
+            display: none; position: absolute; bottom: 10%; left: 50%;
+            transform: translateX(-50%); background-color: var(--color-dpia-modal-bg);
+            color: var(--color-background); padding: 20px; border: 4px solid var(--color-text);
+            border-radius: 10px; z-index: 70; width: 90%; max-width: 600px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5); text-align: center; box-sizing: border-box;
+        }
+        #dpia-modal h3 { margin-top: 0; margin-bottom: 10px; font-size: 1em; color: var(--color-complement); }
+        #dpia-risk-text { margin-bottom: 20px; font-size: 0.9em; line-height: 1.4; min-height: 40px; }
+        #dpia-mitigation-options { display: flex; flex-direction: column; gap: 10px; align-items: center; margin-bottom: 15px; }
+        .dpia-button {
+            background-color: var(--color-dpia-button); color: var(--color-text);
+            padding: 12px 15px; border-radius: 5px; cursor: pointer;
+            transition: background-color 0.2s ease, transform 0.1s ease;
+            border: 2px solid var(--color-primary-2); font-family: 'Press Start 2P', cursive;
+            font-size: 0.8em; line-height: 1.3; width: 90%; max-width: 400px; text-align: center;
+        }
+        .dpia-button:hover { background-color: var(--color-dpia-button-hover); transform: scale(1.03); }
+        .dpia-button:disabled { opacity: 0.6; cursor: default; transform: none; background-color: #aaa; }
+        #dpia-feedback { margin-top: 15px; font-size: 0.9em; min-height: 30px; font-weight: bold; line-height: 1.4; }
+        #dpia-progress { font-size: 0.8em; margin-top: 10px; color: var(--color-primary-3); }
+
+        /* --- Instruktionstext --- */
+        .instructions {
+            margin-top: 15px; font-size: 0.8em; text-align: center;
+            max-width: 600px; line-height: 1.5;
+        }
+
+        /* --- Responsivitet --- */
+        @media (max-width: 800px) { :root { --tile-size: 30px; } }
+        @media (max-width: 600px) { :root { --tile-size: 25px; } }
+        @media (max-width: 450px) { :root { --tile-size: 20px; } }
+        @media (max-width: 600px) {
+             h1 { font-size: 1.5em; } #ui-top-bar { flex-direction: column; gap: 10px; }
+             #score-board, #health-display { font-size: 0.9em; padding: 6px 12px; }
+             #quiz-modal { padding: 20px; } #quiz-modal h3 { font-size: 1em; }
+             #quiz-modal li { padding: 10px; font-size: 0.8em; } #close-quiz { padding: 8px 15px; font-size: 0.8em; }
+             .minimap-cell { width: 4px; height: 4px; } #minimap-container { top: 5px; right: 5px; padding: 3px;}
+             #message-overlay { font-size: 0.9em; padding: 10px 20px; } #cave-timer-display { font-size: 0.9em; padding: 4px 10px; top: 5px; }
+             #dpia-modal { padding: 15px; bottom: 5%; } #dpia-modal h3 { font-size: 0.9em; }
+             #dpia-risk-text { font-size: 0.8em; } .dpia-button { padding: 10px 12px; font-size: 0.75em; }
+             #dpia-creature { font-size: calc(var(--tile-size) * 1.8); } .instructions { font-size: 0.7em; }
+        }
+         @media (max-width: 450px) {
+             h1 { font-size: 1.2em; } #score-board, #health-display { font-size: 0.8em; padding: 5px 10px; }
+             #health-display .heart { font-size: 1em; } #quiz-modal { padding: 15px; }
+             #quiz-modal h3 { font-size: 0.9em; } #quiz-modal li { padding: 8px; font-size: 0.75em; }
+             #close-quiz { padding: 6px 12px; font-size: 0.75em; } .minimap-cell { width: 3px; height: 3px; }
+             #minimap-container { top: 3px; right: 3px; padding: 2px;} #message-overlay { font-size: 0.8em; padding: 8px 15px; }
+             #cave-timer-display { font-size: 0.8em; padding: 3px 8px; } #dpia-modal { padding: 10px; }
+             #dpia-modal h3 { font-size: 0.8em; } #dpia-risk-text { font-size: 0.75em; }
+             .dpia-button { padding: 8px 10px; font-size: 0.7em; } #dpia-creature { font-size: calc(var(--tile-size) * 1.6); }
+             .instructions { font-size: 0.65em; }
+        }
+
+        /* Shake animation */
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-3px); } 50% { transform: translateX(3px); } 75% { transform: translateX(-3px); } }
+
+    </style>
+</head>
+<body>
+
+    <h1>ÄventyretKsdGDPRedition</h1> {/* Uppdaterad titel */}
+    <div id="ui-top-bar">
+        <div id="score-board">Poäng: 0</div>
+        <div id="health-display">Hälsa: <span id="health-hearts"></span></div>
+    </div>
+
+    <div id="game-container">
+        <div id="game-world"></div>
+        <div id="minimap-container">
+             <div id="minimap"></div>
+        </div>
+        <div id="cave-timer-display">Tid: 0s</div>
+        <div id="dpia-creature"></div>
+        <div id="quiz-modal">
+            <h3 id="quiz-question">Fråga här</h3>
+            <ul id="quiz-answers"></ul>
+            <div id="quiz-feedback"></div>
+            <button id="close-quiz">Stäng</button>
+        </div>
+        <div id="dpia-modal">
+            <h3>Riskbedömning (DPIA)</h3>
+            <div id="dpia-risk-text">Riskbeskrivning här...</div>
+            <div id="dpia-mitigation-options"></div>
+            <div id="dpia-feedback"></div>
+            <div id="dpia-progress">Framsteg: 0 / 5</div>
+        </div>
+        <div id="message-overlay">Meddelande här</div>
+    </div>
+     <p class="instructions">
+         Använd WASD/Piltangenter för att flytta 🚶. Mellanslag för att hoppa (ej i grottor).
+         Gå till 👮, 🏢, 🧑 för frågor (2p/rätt).
+         Gå till 🌟 (och 🦅) för stjärnbyte (kostar 10p, ger +2 max hälsa).
+         Gå till ⛰️ för Tillsyns-utmaning (undvik 🔥, överlev 30s för 8p, förlust ger -5p).
+         Gå till 👾 för DPIA-utmaning (identifiera rätt åtgärd för 5 risker, ger 10p).
+         Gå till 🚪 för att gå in/ut ur hus. Gå till kartans kant (guld) för att byta område.
+     </p>
+
+    <script>
+        // --- Game Data and Configuration ---
+        let TILE_SIZE = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--tile-size') || '40');
+        const PLAYER = '🚶';
+        const NPCS = ['👮', '🏢', '🧑'];
+        const STAR_VENDOR = '🌟';
+        const HAWK = '🦅';
+        const WALL = '🌳'; const INDOOR_WALL = '🧱'; const GRASS = ''; const PATH = '';
+        const HOUSE = ''; const DOOR = '🚪'; const EXIT_DOOR = '🚪'; const FURNITURE = '🪑';
+        const CAVE_ENTRANCE = '⛰️'; const CAVE2_ENTRANCE = '👾';
+        const SKULL = '💀'; const FIRE = '🔥'; const ALIEN = '👽'; const ROBOT = '🤖';
+        const CAVE_FLOOR = ''; const CAVE_WALL = '⬛';
+        const CAVE2_FLOOR = ''; const CAVE2_WALL = '🔮';
+        const WARNING_EYES = '👀';
+
+        // --- Health & Score ---
+        const initialMaxHealth = 3;
+        let maxHealth = initialMaxHealth;
+        let currentHealth = initialMaxHealth;
+        const healthIncreaseOnStar = 2;
+        const pointsPerCorrectAnswer = 2;
+        const starExchangeCost = 10;
+        const caveSurviveTimeGoal = 30;
+        const caveSurviveBonus = 8;
+        const fireDamageInterval = 1000;
+        const failurePointPenalty = 5;
+        const dpiaWinBonus = 10;
+        const dpiaCorrectAnswersNeeded = 5;
+
+        // --- Map Definitions ---
+        const HAWK_TILE = 20;
+        const worldMapData1 = [
+             [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2],[2, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 8],[2, 1, 0, 0, 0, 0, 1, 0, 2, 2, 2, 2, 0, 2, 2, 2, 2, 2, 0, 8],[2, 1, 0, 2, 2, 0, 1, 0, 2, 0, 0, 2, 0, 2, 0, 3, 0, 2, 0, 8],[2, 1, 0, 2, 0, 0, 1, 0, 2, 0, 0, 2, 0, 2, 0, 0, 0, 2, 0, 8],[2, 1, 0, 2, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 1, 1, 8],[2, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 8],[2, 1, 1, 1, 17, 1, 1, 0, 1, 0, 0, 1, 0, 2, 0, 1, 0, 1, 0, 8],[2, 0, 0, 0, 0, 0, 1, 0, 1, 1, 1, 1, 0, 2, 0, 1, 1, 1, 0, 8],[2, 0, 15, 14, 15, 0, 1, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 8],[2, 0, 2, 4, 4, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 3, 8],[2, 0, 2, 4, 4, 2, 1, 0, 0, 0, 12, HAWK_TILE, 0, 0, 0, 0, 1, 0, 0, 8],
+             [2, 0, 2, 5, 2, 2, 1, 0, 2, 2, 2, 2, 2, 2, 2, 0, 1, 1, 1, 8],[2, 0, 0, 0, 0, 0, 1, 0, 0, 3, 0, 0, 0, 0, 2, 0, 0, 0, 0, 8],[2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 8],[2, 2, 2, 2, 2, 2, 2, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10],[2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
+        ];
+        const worldMapData2 = [
+             [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2],[9, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 3, 0, 2],[9, 0, 2, 0, 1, 0, 0, 0, 0, 1, 0, 2, 0, 0, 2],[9, 0, 2, 0, 1, 0, 2, 2, 0, 1, 0, 2, 0, 0, 2],[9, 0, 2, 0, 1, 0, 2, 0, 0, 1, 0, 2, 2, 0, 2],[9, 1, 1, 1, 1, 0, 2, 0, 0, 1, 0, 0, 0, 0, 2],[9, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 2],[9, 0, 2, 2, 2, 2, 0, 1, 1, 1, 0, 0, 0, 1, 2],[9, 0, 0, 0, 0, 2, 0, 1, 0, 0, 0, 2, 0, 1, 2],[9, 2, 2, 4, 4, 2, 0, 1, 0, 0, 0, 2, 0, 1, 2],[9, 2, 2, 4, 4, 2, 0, 1, 1, 1, 0, 2, 0, 1, 2],[9, 0, 0, 5, 0, 0, 0, 0, 3, 1, 0, 2, 0, 1, 2],[9, 0, 0, 0, 0, 2, 2, 2, 2, 1, 0, 0, 0, 1, 2],[9, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 2],[9, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 2],[2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
+        ];
+        const worldMapData3 = [
+             [11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11],[2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2],[2, 1, 1, 0, 2, 2, 2, 0, 2, 2, 2, 2, 0, 2, 2, 2, 0, 2, 0, 2],[2, 0, 1, 0, 2, 4, 4, 0, 2, 4, 4, 2, 0, 2, 4, 4, 0, 2, 0, 2],[2, 0, 1, 0, 2, 4, 4, 0, 2, 4, 4, 2, 0, 2, 4, 4, 0, 2, 0, 2],[2, 0, 1, 0, 2, 5, 2, 0, 2, 5, 2, 2, 0, 2, 5, 2, 0, 2, 0, 2],[2, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 2],[2, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2],[2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
+        ];
+        const house1MapData = [
+             [13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13],[13, 0, 0, 0, 0, 0, 0, 0, 0, 6, 0, 13],[13, 0, 6, 0, 13, 13, 13, 0, 0, 0, 0, 13],[13, 0, 0, 0, 13, 0, 0, 0, 6, 0, 0, 13],[13, 0, 0, 3, 13, 0, 3, 0, 0, 0, 0, 13],[13, 13, 13, 13, 13, 0, 13, 13, 13, 13, 13, 13],[13, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 13],[13, 0, 6, 0, 0, 0, 0, 0, 6, 0, 0, 13],[13, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 13],[13, 0, 0, 0, 7, 0, 0, 0, 0, 0, 0, 13],[13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13],
+        ];
+        const caveMapData = [
+             [13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13],[13,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,13],[13,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,13],[13,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,13],[13,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,13],[13,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,13],[13,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,13],[13,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,13],[13,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,13],[13,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,13],[13,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,13],[13,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,13],[13,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,13],[13,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,13],[13,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,13],[13,13,13,13,13,13,13,13,13,0,0,13,13,13,13,13,13,13,13,13],
+        ];
+        const caveMapData2 = [
+             [18,18,18,18,18,18,18,18,18,18,18,18,18,18,18,18,18,18,18,18],[18,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,18],[18,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,18],[18,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,18],[18,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,18],[18,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,18],[18,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,18],[18,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,18],[18,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,18],[18,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,18],[18,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,18],[18,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,18],[18,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,18],[18,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,18],[18,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,18],[18,18,18,18,18,18,18,18,18,19,19,18,18,18,18,18,18,18,18,18],
+        ];
+
+
+        // Function to initialize map with objects for NPCs
+        function initializeMap(mapData) {
+            if (!mapData || mapData.length === 0) { console.error("Invalid map data"); return []; }
+            const newMap = JSON.parse(JSON.stringify(mapData));
+            return newMap.map(row => row.map(tile => {
+                if (tile === 3) {
+                    return { type: 3, icon: NPCS[Math.floor(Math.random() * NPCS.length)] };
+                }
+                return tile;
+            }));
+        }
+        // Function to randomize NPC icons on an existing map grid
+        function randomizeNpcs(mapGrid) {
+             if (!mapGrid) return;
+             mapGrid.forEach(row => row.forEach(tile => {
+                 if (typeof tile === 'object' && tile !== null && tile.type === 3) {
+                     tile.icon = NPCS[Math.floor(Math.random() * NPCS.length)];
+                 }
+             }));
+         }
+
+        // --- Game State ---
+        let playerPos = { x: 1, y: 1 };
+        let score = 0;
+        const maps = {
+            world1: initializeMap(worldMapData1),
+            world2: initializeMap(worldMapData2),
+            world3: initializeMap(worldMapData3),
+            house1: initializeMap(house1MapData),
+            cave1: initializeMap(caveMapData),
+            cave2: initializeMap(caveMapData2)
+        };
+        let currentMapIdentifier = 'world1';
+        let currentMap = maps[currentMapIdentifier];
+        let lastMapIdentifier = 'world1';
+        let lastPlayerPos = { x: 1, y: 1 };
+        let caveEntrancePos = { x: -1, y: -1 };
+        let cave2EntrancePos = { x: -1, y: -1 };
+        let activeNPC = null;
+        let activeVendor = null;
+        let isJumping = false;
+        let effectTimeout = null;
+
+        // --- Cave 1 (Tillsyn) State ---
+        let isInCave = false;
+        let caveStartTime = 0;
+        let caveTimerInterval = null;
+        let caveFireInterval = null;
+        let moveFireInterval = null;
+        let currentFireWave = { positions: [], direction: 1, currentX: -1, wall: 'none' };
+        let fireWaveFrequency = 2500;
+        const minFireWaveFrequency = 800;
+        const fireFrequencyIncreaseFactor = 0.95;
+        let fireMoveSpeed = 188;
+        const minFireMoveSpeed = 50;
+        const fireMoveSpeedIncreaseFactor = 0.97;
+        let lastFireDamageTime = 0;
+        let fireWarning = { active: false, side: 'none', timeout: null };
+
+        // --- Cave 2 (DPIA) State ---
+        let isInDpiaGame = false;
+        let dpiaCurrentRiskData = null;
+        let dpiaCorrectAnswersCount = 0;
+        let dpiaCreatureType = null;
+        let dpiaQuestionActive = false;
+
+        // --- GDPR Quiz Questions (Formatted from user input) ---
+        const questions = [
+            { question: "Vad är den grundläggande basen för dataskyddslagstiftning som GDPR?", answers: ["A. Den grundläggande mänskliga rätten till privatliv och skydd av personuppgifter.", "B. Företags rätt att fritt samla in data för kommersiella ändamål.", "C. Statens behov av att effektivt övervaka medborgare för säkerhetsskäl.", "D. Tekniska standarder för säker datalagring och överföring."], correctAnswerIndex: 0, explanation: "Rätt! GDPR grundar sig i den mänskliga rätten till privatliv och skydd av personuppgifter." },
+            { question: "Vem bär det primära ansvaret för att säkerställa efterlevnad av dataskyddsregler som GDPR?", answers: ["A. Den enskilda medarbetaren som hanterar uppgifterna dagligen.", "B. Dataskyddsombudet (DPO) inom organisationen.", "C. Den 'personuppgiftsansvarige' – organisationen (t.ex. företaget, myndigheten) som bestämmer ändamål och medel för behandlingen.", "D. Den nationella tillsynsmyndigheten (t.ex. Integritetsskyddsmyndigheten i Sverige)."], correctAnswerIndex: 2, explanation: "Korrekt! Den 'personuppgiftsansvarige' – organisationen bär det primära ansvaret." },
+            { question: "Vilka är potentiella konsekvenser för en organisation som inte följer GDPR?", answers: ["A. Endast en skriftlig varning vid första överträdelsen.", "B. Höga administrativa böter, förelägganden om åtgärder och potentiella skadeståndskrav från individer.", "C. Maximalt 1% av den globala årsomsättningen i böter.", "D. Inga direkta konsekvenser, endast rekommendationer om förbättring."], correctAnswerIndex: 1, explanation: "Rätt! Konsekvenserna kan inkludera höga böter, förelägganden och skadestånd." },
+            { question: "Vilka är några av de centrala principerna som GDPR bygger på för laglig behandling av personuppgifter?", answers: ["A. Maximal datainsamling, obegränsad lagring och fri delning av data.", "B. Laglighet/korrekthet/öppenhet, ändamålsbegränsning, uppgiftsminimering och lagringsbegränsning.", "C. Fokus på organisationens behov, databehandling baserat på antaganden och minimal transparens.", "D. Snabbhet i behandling, kostnadseffektivitet och förenklad åtkomst för alla anställda."], correctAnswerIndex: 1, explanation: "Korrekt! Principer som laglighet, ändamålsbegränsning, uppgiftsminimering är centrala." },
+            { question: "Vilka initiala steg bör en organisation ta för att etablera och upprätthålla GDPR-efterlevnad?", answers: ["A. Omedelbart radera all personlig data som finns lagrad.", "B. Vänta på specifika instruktioner från tillsynsmyndigheten.", "C. Köpa den dyraste tillgängliga säkerhetsmjukvaran.", "D. Etablera en dataskyddsorganisation, säkra ledningens stöd och göra en inventering av personuppgiftsbehandlingar."], correctAnswerIndex: 3, explanation: "Rätt! Organisation, ledningsstöd och inventering är viktiga första steg." },
+            { question: "Vad är syftet med ett 'register över behandlingar' (ROPA) enligt GDPR?", answers: ["A. Det är en offentlig lista där kunder kan se vilka uppgifter som lagras om dem.", "B. Det är ett verktyg för att automatiskt kryptera all känslig data.", "C. Det är en systematisk dokumentation över organisationens personuppgiftsbehandlingar för att visa ansvarsskyldighet.", "D. Det är en lista över anställda som har fått sparken på grund av GDPR-överträdelser."], correctAnswerIndex: 2, explanation: "Korrekt! Registret är till för att visa ansvarsskyldighet." },
+            { question: "Hur adresserar GDPR säkerheten och skyddet av personuppgifter?", answers: ["A. Genom att kräva att all data lagras på servrar inom EU.", "B. Genom att specificera exakt vilken antivirusprogramvara som måste användas.", "C. Genom att kräva lämpliga tekniska och organisatoriska säkerhetsåtgärder baserat på risken med behandlingen (t.ex. kryptering, åtkomstkontroll).", "D. Genom att helt förbjuda användningen av molntjänster för personuppgifter."], correctAnswerIndex: 2, explanation: "Rätt! GDPR kräver lämpliga tekniska och organisatoriska åtgärder." },
+            { question: "Vilka löpande aktiviteter är nödvändiga för att upprätthålla GDPR-efterlevnad i en organisation?", answers: ["A. En stor GDPR-revision vart femte år är tillräckligt.", "B. Att endast fokusera på att hantera klagomål från registrerade.", "C. Regelbundna granskningar, interna kontroller, personalutbildning och uppdatering av styrdokument och avtal.", "D. Att förlita sig helt på externa konsulter utan att bygga interna rutiner."], correctAnswerIndex: 2, explanation: "Korrekt! Kontinuerligt arbete med granskning, utbildning och uppdatering krävs." },
+            { question: "Vilken specifik artikel i EU:s stadga om de grundläggande rättigheterna (EU's Charter of Fundamental Rights) anger rätten till skydd av personuppgifter?", answers: ["A. Artikel 1 (Mänsklig värdighet)", "B. Artikel 8 (Skydd för personuppgifter)", "C. Artikel 11 (Yttrande- och informationsfrihet)", "D. Artikel 47 (Rätt till ett effektivt rättsmedel)"], correctAnswerIndex: 1, explanation: "Rätt! Artikel 8 handlar om skydd för personuppgifter." },
+            { question: "Vilket ansvar har 'personuppgiftsbiträden' (de som behandlar data på uppdrag av den ansvarige) enligt GDPR?", answers: ["A. De har inget eget juridiskt ansvar, endast den personuppgiftsansvarige kan bötfällas.", "B. De har också specifika skyldigheter enligt GDPR och kan hållas ansvariga vid bristande efterlevnad.", "C. Deras enda ansvar är att omedelbart radera data efter behandlingens slut.", "D. De är endast ansvariga om de medvetet bryter mot den personuppgiftsansvariges instruktioner."], correctAnswerIndex: 1, explanation: "Korrekt! Även biträden har specifika skyldigheter och kan hållas ansvariga." },
+            { question: "Vad är den högsta möjliga administrativa sanktionsavgiften (boten) för mindre allvarliga överträdelser av GDPR?", answers: ["A. Upp till 1 miljon euro eller 1% av global årsomsättning.", "B. Upp till 10 miljoner euro eller 2% av global årsomsättning (det som är högst).", "C. Upp till 20 miljoner euro eller 4% av global årsomsättning (det som är högst).", "D. En fast avgift på 50 000 euro per överträdelse."], correctAnswerIndex: 1, explanation: "Rätt! Upp till 10 miljoner euro eller 2% av global årsomsättning." },
+            { question: "Vad innebär GDPR-principen om 'ansvarsskyldighet' (accountability) i praktiken för en organisation?", answers: ["A. Att endast organisationens VD är juridiskt ansvarig vid en överträdelse.", "B. Att organisationen måste kunna visa och bevisa att den följer GDPR:s principer och regler.", "C. Att organisationen måste publicera alla sina interna policyer på sin webbplats.", "D. Att organisationen måste anlita ett externt dataskyddsombud."], correctAnswerIndex: 1, explanation: "Korrekt! Organisationen måste kunna visa och bevisa att den följer reglerna." },
+            { question: "Vad är syftet med den 'gapanalys' som ofta följer efter en inventering av personuppgiftsbehandlingar?", answers: ["A. Att identifiera vilka anställda som behöver mer utbildning i GDPR.", "B. Att jämföra organisationens nuvarande dataskyddsnivå med GDPR:s krav för att se var brister finns.", "C. Att räkna ut hur mycket det kommer att kosta att implementera GDPR fullt ut.", "D. Att analysera konkurrenternas GDPR-arbete."], correctAnswerIndex: 1, explanation: "Rätt! Gapanalysen identifierar skillnaden mellan nuläge och krav." },
+            { question: "Förutom ändamål och kategorier av data, vilken annan typ av information ska en personuppgiftsansvarigs register över behandlingar (ROPA) innehålla, enligt texten?", answers: ["A. Namn och kontaktuppgifter till varje enskild registrerad person.", "B. Detaljerade loggar över när varje uppgift senast användes.", "C. Information om eventuella mottagare av datan, lagringstider och säkerhetsåtgärder.", "D. En kopia av organisationens marknadsföringsplan."], correctAnswerIndex: 2, explanation: "Korrekt! Mottagare, lagringstider och säkerhetsåtgärder ska också finnas med." },
+            { question: "Vilka typer av åtgärder exemplifieras i texten som en del av de 'lämpliga tekniska och organisatoriska åtgärder' som krävs för datasäkerhet enligt GDPR?", answers: ["A. Att endast använda programvara som är godkänd av EU-kommissionen.", "B. Pseudonymisering, kryptering, åtkomstkontroller och regelbunden testning av säkerheten.", "C. Att installera brandväggar och antivirusprogram från en specifik leverantör.", "D. Att genomföra bakgrundskontroller på all personal som hanterar data."], correctAnswerIndex: 1, explanation: "Rätt! Exempel inkluderar pseudonymisering, kryptering och åtkomstkontroller." },
+            { question: "Varför är det viktigt att som en del av det löpande GDPR-arbetet hålla sig uppdaterad om vägledning från tillsynsmyndigheter?", answers: ["A. För att få förhandsinformation om kommande lagändringar.", "B. För att förstå hur myndigheterna tolkar reglerna och säkerställa att organisationens praxis är korrekt.", "C. För att kunna anmäla konkurrenter som inte följer reglerna.", "D. För att det krävs för att få certifieringar inom dataskydd."], correctAnswerIndex: 1, explanation: "Korrekt! Vägledning hjälper till att förstå hur reglerna ska tillämpas." }
+        ];
+
+
+        // --- DPIA Minigame Data ---
+        const dpiaData = [
+            { risk: "Onödig datainsamling", mitigation: "Genomför behovsanalys, Begränsa formulärfält, Informera vid insamling" },
+            { risk: "Otydliga/ändrade ändamål", mitigation: "Tydligt dokumentera ändamål, Följ interna riktlinjer" },
+            { risk: "Felaktiga/inaktuella uppgifter", mitigation: "Inför rutiner för rättelse, Kontrollera datakällor" },
+            { risk: "För lång lagring", mitigation: "Implementera gallringsrutiner, Använd automatisk radering" },
+            { risk: "Ogiltig rättslig grund", mitigation: "Gör juridisk analys, Dokumentera vald grund" },
+            { risk: "Otillåten behandling av känsliga data", mitigation: "Strikt behovsprövning och åtkomst, Hitta lagstöd/undantag" },
+            { risk: "Oproportionerligt intrång", mitigation: "Gör proportionalitetsbedömning, Välj minst integritetskänsliga metod" },
+            { risk: "Obehörig åtkomst", mitigation: "Implementera åtkomstkontroll, Använd kryptering, Granska loggar" },
+            { risk: "Felaktig dataändring", mitigation: "Använd ändringsloggar, Styr redigeringsbehörighet" },
+            { risk: "Dataförlust/förstörelse", mitigation: "Regelbunden säkerhetskopiering, Testa återställning" },
+            { risk: "Otillräcklig teknisk säkerhet", mitigation: "Använd kryptering, Hantera sårbarheter och patchning" },
+            { risk: "Otillräcklig organisatorisk säkerhet", mitigation: "Skapa policyer och rutiner, Utbilda personal, Internkontroll" },
+            { risk: "Dataläckage vid överföring", mitigation: "Kryptera data vid överföring, Använd säkra protokoll" },
+            { risk: "Otillåten tredjelandsöverföring", mitigation: "Använd godkänt avtal (SCC/BCR), Kontrollera adekvansbeslut" },
+            { risk: "Risker med ny teknik", mitigation: "Gör DPIA, Testa noga, Övervaka löpande" },
+            { risk: "Bristfällig information till registrerade", mitigation: "Skriv tydlig integritetspolicy, Gör information lättillgänglig" },
+            { risk: "Svårt att utöva sina rättigheter", mitigation: "Skapa tydliga kontaktvägar/processer, Anpassa system" },
+            { risk: "Negativ påverkan från profilering/automatisering", mitigation: "Möjliggör mänsklig granskning, Kontrollera och motverka bias" },
+            { risk: "Förlust av kontroll över egna data", mitigation: "Öka transparens, Ge registrerade valmöjligheter" },
+            { risk: "Oönskad övervakning/kartläggning", mitigation: "Begränsa bevakning (yta/tid), Använd maskering (kamera)" },
+            { risk: "Risk för identitetsstöld/bedrägeri", mitigation: "Använd stark autentisering, Minimera identifierande data" },
+            { risk: "Skadat anseende/rykte", mitigation: "Strikt åtkomstbegränsning, Hantera sekretess" },
+            { risk: "Risk för diskriminering", mitigation: "Analysera data/algoritmer för bias, Designa rättvisa processer" },
+            { risk: '"Chilling effect"', mitigation: "Var transparent, Bedöm proportionalitet" },
+            { risk: "Bristande interna rutiner/processer", mitigation: "Utveckla och dokumentera dataskyddsrutiner" },
+            { risk: "Otillräckliga resurser", mitigation: "Prioritera dataskydd, Budgetera resurser" },
+            { risk: "Låg kunskap/engagemang internt", mitigation: "Genomför regelbunden utbildning, Kommunicera tydligt" },
+            { risk: "Otydlig ansvarsfördelning", mitigation: "Tydligt dokumentera roller, Upprätta avtal (vid gemensamt ansvar)" },
+            { risk: "Problem med personuppgiftsbiträden", mitigation: "Skriv tydliga biträdesavtal, Följ upp och granska biträden" },
+            { risk: "Oförutsedda behandlingar", mitigation: "Säkerställ mänsklig kontroll, Ge tydliga systeminstruktioner" }
+        ];
+
+
+        // --- DOM Element References ---
+        const gameWorld = document.getElementById('game-world');
+        const scoreBoard = document.getElementById('score-board');
+        const healthDisplay = document.getElementById('health-display');
+        const healthHearts = document.getElementById('health-hearts');
+        const quizModal = document.getElementById('quiz-modal');
+        const quizQuestion = document.getElementById('quiz-question');
+        const quizAnswers = document.getElementById('quiz-answers');
+        const quizFeedback = document.getElementById('quiz-feedback');
+        const closeQuizButton = document.getElementById('close-quiz');
+        const minimapContainer = document.getElementById('minimap-container');
+        const minimapElement = document.getElementById('minimap');
+        const gameContainer = document.getElementById('game-container');
+        const messageOverlay = document.getElementById('message-overlay');
+        const caveTimerDisplay = document.getElementById('cave-timer-display');
+        const dpiaModal = document.getElementById('dpia-modal');
+        const dpiaCreature = document.getElementById('dpia-creature');
+        const dpiaRiskText = document.getElementById('dpia-risk-text');
+        const dpiaMitigationOptions = document.getElementById('dpia-mitigation-options');
+        const dpiaFeedback = document.getElementById('dpia-feedback');
+        const dpiaProgress = document.getElementById('dpia-progress');
+
+
+        // --- Game Functions ---
+
+        // Function to render the game world based on currentMap
+        function renderWorld() {
+            gameWorld.innerHTML = '';
+            if (!currentMap || currentMap.length === 0 || !currentMap[0]) {
+                console.error("Invalid map data for rendering!");
+                return;
+            }
+            const mapHeight = currentMap.length;
+            const mapWidth = currentMap[0].length;
+
+            gameWorld.style.gridTemplateColumns = `repeat(${mapWidth}, ${TILE_SIZE}px)`;
+            gameWorld.style.gridTemplateRows = `repeat(${mapHeight}, ${TILE_SIZE}px)`;
+            gameWorld.style.width = `${mapWidth * TILE_SIZE}px`;
+            gameWorld.style.height = `${mapHeight * TILE_SIZE}px`;
+
+            const borderWidth = 4;
+            gameContainer.style.width = `${mapWidth * TILE_SIZE + (borderWidth * 2)}px`;
+            gameContainer.style.height = `${mapHeight * TILE_SIZE + (borderWidth * 2)}px`;
+
+            currentMap.forEach((row, y) => {
+                row.forEach((tile, x) => {
+                    const cell = document.createElement('div');
+                    cell.classList.add('cell');
+
+                    let content = '';
+                    let tileTypeClass = 'grass';
+                    let tileData = tile;
+                    let isFireTile = false;
+                    let isAlienWall = false;
+
+                    if (currentMapIdentifier === 'cave1') tileTypeClass = 'cave-floor';
+                    else if (currentMapIdentifier === 'cave2') tileTypeClass = 'cave2-floor';
+
+                    if (isInCave && currentFireWave.positions.some(firePos => firePos.x === x && firePos.y === y)) {
+                        isFireTile = true;
+                        tileData = 16;
+                    }
+
+                    let tileValue = typeof tileData === 'object' && tileData !== null ? tileData.type : tileData;
+
+                    switch (tileValue) {
+                        case 1: tileTypeClass = 'path'; content = PATH; break;
+                        case 2: tileTypeClass = 'wall'; content = WALL; break;
+                        case 3: tileTypeClass = 'npc'; content = (typeof tileData === 'object' && tileData.icon) ? tileData.icon : '?'; break;
+                        case 4: tileTypeClass = 'house'; content = HOUSE; break;
+                        case 5: tileTypeClass = 'door'; content = DOOR; break;
+                        case 6: tileTypeClass = 'furniture'; content = FURNITURE; break;
+                        case 7: tileTypeClass = 'exit-door'; content = EXIT_DOOR; break;
+                        case 8: case 9: case 10: case 11: tileTypeClass = 'transition-zone'; content = ''; break;
+                        case 12: tileTypeClass = 'star-vendor'; content = STAR_VENDOR; break;
+                        case 13: tileTypeClass = 'cave-wall'; content = CAVE_WALL; break;
+                        case 14: tileTypeClass = 'cave-entrance'; content = CAVE_ENTRANCE; break;
+                        case 15: tileTypeClass = 'skull'; content = SKULL; break;
+                        case 16: tileTypeClass = 'fire'; content = FIRE; break;
+                        case 17: tileTypeClass = 'cave2-entrance'; content = CAVE2_ENTRANCE; break;
+                        case 18:
+                            tileTypeClass = 'cave2-wall'; content = CAVE2_WALL;
+                            if (x === 0 || x === mapWidth - 1) { content = ALIEN; isAlienWall = true; }
+                            break;
+                        case 19: tileTypeClass = 'cave2-floor'; content = CAVE2_FLOOR; break;
+                        case HAWK_TILE: tileTypeClass = 'hawk'; content = HAWK; break;
+                        case 0: default:
+                             if (currentMapIdentifier === 'cave1') tileTypeClass = 'cave-floor';
+                             else if (currentMapIdentifier === 'cave2') tileTypeClass = 'cave2-floor';
+                             else tileTypeClass = 'grass';
+                             content = ''; break;
+                    }
+
+                    const emojiSpan = document.createElement('span');
+                    emojiSpan.classList.add('emoji');
+                    emojiSpan.textContent = content;
+                    cell.appendChild(emojiSpan);
+
+                    if (isInCave && fireWarning.active && tileValue === 13) {
+                        const warningX = (fireWarning.side === 'left') ? 0 : mapWidth - 1;
+                        if (x === warningX && y > 0 && y < mapHeight - 1) {
+                            const warningSpan = document.createElement('span');
+                            warningSpan.classList.add('warning-eyes');
+                            warningSpan.textContent = WARNING_EYES;
+                            cell.appendChild(warningSpan);
+                        }
+                    }
+
+                    if (x === playerPos.x && y === playerPos.y) {
+                        cell.innerHTML = '';
+                        emojiSpan.textContent = PLAYER;
+                        cell.appendChild(emojiSpan);
+                        cell.classList.add('player');
+                        if (isJumping) cell.classList.add('jump');
+                    }
+
+                    cell.classList.add(tileTypeClass);
+                    cell.dataset.x = x; cell.dataset.y = y;
+                    gameWorld.appendChild(cell);
+                });
+            });
+
+            renderMinimap();
+            minimapContainer.style.display = (currentMapIdentifier === 'world1') ? 'grid' : 'none';
+            caveTimerDisplay.style.display = isInCave ? 'block' : 'none';
+            dpiaModal.style.display = isInDpiaGame ? 'block' : 'none'; // Show/hide based on flag
+            dpiaCreature.style.display = isInDpiaGame ? 'block' : 'none'; // Show/hide based on flag
+        }
+
+
+        // Function to render the minimap
+        function renderMinimap() {
+            minimapElement.innerHTML = '';
+            const mapToShow = maps.world1;
+            if (!mapToShow || mapToShow.length === 0 || !mapToShow[0]) return;
+            const minimapWidth = mapToShow[0].length;
+            minimapElement.style.gridTemplateColumns = `repeat(${minimapWidth}, auto)`;
+            mapToShow.forEach((row, y) => {
+                row.forEach((tile, x) => {
+                    const minimapCell = document.createElement('div');
+                    minimapCell.classList.add('minimap-cell');
+                    const tileType = getTileType(x, y, mapToShow);
+                    switch (tileType) {
+                        case 2: case 13: case 18: minimapCell.classList.add('minimap-wall'); break;
+                        case 4: case 5: case 7: minimapCell.classList.add('minimap-house'); break;
+                        case 14: case 15: case 17: case HAWK_TILE:
+                            minimapCell.classList.add('minimap-cave');
+                            break;
+                        default: break;
+                    }
+                    if (currentMapIdentifier === 'world1' && x === playerPos.x && y === playerPos.y) {
+                        minimapCell.classList.add('minimap-player');
+                    }
+                    minimapElement.appendChild(minimapCell);
+                });
+            });
+        }
+
+        // Helper function to get tile type
+        function getTileType(x, y, map) {
+            if (!map || y < 0 || y >= map.length || x < 0 || x >= map[0].length) return -1;
+            if (isInCave && currentFireWave.positions.some(pos => pos.x === x && pos.y === y)) return 16;
+            const tile = map[y][x];
+            if (typeof tile === 'object' && tile !== null && tile.hasOwnProperty('type')) return tile.type;
+            return tile;
+        }
+
+        // Check if a tile is walkable
+        function isWalkable(x, y) {
+            if (!currentMap) return false;
+            const tileType = getTileType(x, y, currentMap);
+            // Floor(0), Path(1), Transition Zones(8-11), Cave2 Floor(19) are walkable
+            return tileType === 0 || tileType === 1 || (tileType >= 8 && tileType <= 11) || tileType === 19;
+        }
+        // Check if a tile is walkable on a SPECIFIC map
+         function isWalkableOnMap(x, y, map) {
+            const tileType = getTileType(x, y, map);
+             return tileType === 0 || tileType === 1 || (tileType >= 8 && tileType <= 11) || tileType === 19;
+        }
+
+
+        // Function to move the player (Revised Logic)
+        function movePlayer(dx, dy) {
+            // console.log(`Attempting move: dx=${dx}, dy=${dy}, Current Pos: (${playerPos.x}, ${playerPos.y}), InCave1: ${isInCave}, InCave2: ${isInDpiaGame}`);
+
+            const nextX = playerPos.x + dx;
+            const nextY = playerPos.y + dy;
+
+            // --- 1. Handle Cave Movement First ---
+            if (isInCave) { // Cave 1 (Tillsyn)
+                const targetTileType = getTileType(nextX, nextY, currentMap);
+                // console.log(`Cave 1 move check: next=(${nextX}, ${nextY}), targetType=${targetTileType}`);
+                if (targetTileType === 0 && nextY === currentMap.length - 1) { endCaveMiniGame(false, true); return; } // Exit
+                if (targetTileType === 0) { playerPos.x = nextX; playerPos.y = nextY; renderWorld(); checkCaveCollision(true); } // Move
+                return;
+            }
+            if (isInDpiaGame) { // Cave 2 (DPIA)
+                const targetTileType = getTileType(nextX, nextY, currentMap);
+                // console.log(`Cave 2 move check: next=(${nextX}, ${nextY}), targetType=${targetTileType}`);
+                if (targetTileType === 19 && nextY === currentMap.length - 1) { endDpiaMiniGame(false, true); return; } // Exit
+                // Allow movement only on cave floor (19)
+                if (targetTileType === 19) {
+                    // console.log("Cave 2 move allowed.");
+                    playerPos.x = nextX; playerPos.y = nextY; renderWorld();
+                } else {
+                    // console.log(`Cave 2 move blocked by tile type: ${targetTileType}`);
+                }
+                return;
+            }
+
+            // --- 2. Check for Blocks (Modals, Jumping, Boundaries) in Normal World/House ---
+            if (isJumping) { /*console.log("Move blocked: Jumping");*/ return; }
+            if (quizModal.style.display === 'block') { /*console.log("Move blocked: Quiz modal open");*/ return; }
+            // Removed dpiaModal check here, handled by isInDpiaGame above
+            if (!currentMap || nextY < 0 || nextY >= currentMap.length || nextX < 0 || nextX >= currentMap[0].length) {
+                // console.log("Move blocked: Map boundary");
+                return;
+            }
+
+            // --- 3. Check Target Tile and Handle Interactions/Transitions ---
+            const targetTileType = getTileType(nextX, nextY, currentMap);
+            // console.log(`Target tile: (${nextX}, ${nextY}), Type: ${targetTileType}`);
+            let interacted = false;
+            let moved = false;
+
+            switch(targetTileType) {
+                // Interactions
+                case 3: // NPC
+                    console.log("Interacting with NPC"); // DEBUG
+                    activeNPC = { x: nextX, y: nextY }; startQuiz(); interacted = true;
+                    break;
+                case 12: // Star Vendor
+                    console.log("Interacting with Star Vendor"); // DEBUG
+                    activeVendor = { x: nextX, y: nextY }; interactWithStarVendor(); interacted = true;
+                    break;
+                // Entrances/Exits (these functions handle map change and return)
+                case 5: // Enter House
+                    if (currentMapIdentifier.startsWith('world')) {
+                        console.log("Entering house"); // DEBUG
+                        lastMapIdentifier = currentMapIdentifier; lastPlayerPos = { x: playerPos.x, y: playerPos.y };
+                        let entryPoint = findTile(7, maps.house1) || { x: 1, y: maps.house1.length - 2 };
+                        transitionMap('house1', entryPoint.x, entryPoint.y - 1); return;
+                    }
+                    break;
+                case 7: // Exit House
+                    if (currentMapIdentifier === 'house1') {
+                        console.log("Exiting house"); // DEBUG
+                        let exitTargetX = lastPlayerPos.x; let exitTargetY = lastPlayerPos.y;
+                        let entryDoorPos = findTile(5, maps[lastMapIdentifier], lastPlayerPos.x, lastPlayerPos.y);
+                        if (entryDoorPos) { /* Find best adjacent walkable tile */
+                            if (isWalkableOnMap(entryDoorPos.x, entryDoorPos.y + 1, maps[lastMapIdentifier])) { exitTargetX = entryDoorPos.x; exitTargetY = entryDoorPos.y + 1; }
+                            else if (isWalkableOnMap(entryDoorPos.x + 1, entryDoorPos.y, maps[lastMapIdentifier])) { exitTargetX = entryDoorPos.x + 1; exitTargetY = entryDoorPos.y; }
+                            else if (isWalkableOnMap(entryDoorPos.x - 1, entryDoorPos.y, maps[lastMapIdentifier])) { exitTargetX = entryDoorPos.x - 1; exitTargetY = entryDoorPos.y; }
+                            else if (isWalkableOnMap(entryDoorPos.x, entryDoorPos.y - 1, maps[lastMapIdentifier])) { exitTargetX = entryDoorPos.x; exitTargetY = entryDoorPos.y - 1; }
+                        }
+                        transitionMap(lastMapIdentifier, exitTargetX, exitTargetY);
+                        if (currentMapIdentifier.startsWith('world') && Math.random() < 0.3) randomizeNpcs(currentMap);
+                        return;
+                    }
+                    break;
+                case 14: // Enter Cave 1
+                    console.log("Entering Cave 1"); // DEBUG
+                    startCaveMiniGame(nextX, nextY); interacted = true; // Set interacted, transition happens inside
+                    break;
+                case 17: // Enter Cave 2
+                    console.log("Entering Cave 2"); // DEBUG
+                    startDpiaMiniGame(nextX, nextY); interacted = true; // Set interacted, transition happens inside
+                    break;
+                // Transitions (these functions handle map change and return)
+                case 8: if (currentMapIdentifier === 'world1') { transitionMap('world2', 0, nextY); return; } break;
+                case 9: if (currentMapIdentifier === 'world2') { transitionMap('world1', maps.world1[0].length - 1, nextY); return; } break;
+                case 10: if (currentMapIdentifier === 'world1') { transitionMap('world3', nextX, 0); return; } break;
+                case 11: if (currentMapIdentifier === 'world3') { transitionMap('world1', nextX, maps.world1.length - 2); return; } break;
+            }
+
+            // --- 4. Handle Movement if No Interaction/Transition Occurred ---
+            if (!interacted && isWalkable(nextX, nextY)) {
+                // console.log("Walkable! Updating player position.");
+                playerPos.x = nextX;
+                playerPos.y = nextY;
+                moved = true;
+            } else if (!interacted) {
+                 // console.log(`Move blocked: Tile type ${targetTileType} at (${nextX}, ${nextY}) is not walkable or interaction occurred.`);
+            }
+
+            // --- 5. Render if Moved ---
+            if (moved) {
+                // console.log("Player moved, rendering world.");
+                renderWorld();
+            } else {
+                // console.log("Player did not move.");
+            }
+        }
+
+
+        // Function to transition between maps
+        function transitionMap(targetMapId, startX, startY) {
+            console.log(`Transitioning from ${currentMapIdentifier} to ${targetMapId} at (${startX}, ${startY})`);
+            if (!maps[targetMapId]) { console.error(`Map "${targetMapId}" does not exist!`); return; }
+
+            // Stop relevant minigame if leaving its cave
+            if (isInCave && targetMapId !== 'cave1') stopCaveMiniGame();
+            if (isInDpiaGame && targetMapId !== 'cave2') stopDpiaMiniGame();
+
+            currentMapIdentifier = targetMapId;
+            currentMap = maps[currentMapIdentifier];
+            // Update flags based on the new map
+            isInCave = (currentMapIdentifier === 'cave1');
+            isInDpiaGame = (currentMapIdentifier === 'cave2');
+            console.log(`Current map set to: ${currentMapIdentifier}, isInCave: ${isInCave}, isInDpiaGame: ${isInDpiaGame}`); // DEBUG
+
+            const newMapHeight = currentMap.length; const newMapWidth = currentMap[0].length;
+            playerPos.x = Math.max(0, Math.min(startX, newMapWidth - 1));
+            playerPos.y = Math.max(0, Math.min(startY, newMapHeight - 1));
+
+            // Adjust if starting position isn't walkable
+            if (!isWalkable(playerPos.x, playerPos.y) && !isInCave && !isInDpiaGame) {
+                 console.warn(`Initial transition position (${playerPos.x}, ${playerPos.y}) on ${targetMapId} is not walkable. Adjusting...`);
+                 if (startX === 0 && isWalkable(1, playerPos.y)) playerPos.x = 1;
+                 else if (startX >= newMapWidth - 1 && isWalkable(newMapWidth - 2, playerPos.y)) playerPos.x = newMapWidth - 2;
+                 else if (startY === 0 && isWalkable(playerPos.x, 1)) playerPos.y = 1;
+                 else if (startY >= newMapHeight - 1 && isWalkable(playerPos.x, newMapHeight - 2)) playerPos.y = newMapHeight - 2;
+                 else if (targetMapId === 'world1') playerPos = { x: 1, y: 1 };
+            }
+            renderWorld(); // Render the new map immediately after transition logic
+        }
+
+        // Helper function to find tile
+        function findTile(typeToFind, map, nearX, nearY) {
+             if (!map) return null; let found = null; let minDistanceSq = Infinity;
+             for (let y = 0; y < map.length; y++) { for (let x = 0; x < map[y].length; x++) {
+                 if (getTileType(x, y, map) === typeToFind) {
+                     if (nearX !== undefined && nearY !== undefined) { const dSq = Math.pow(x - nearX, 2) + Math.pow(y - nearY, 2); if (dSq < minDistanceSq) { minDistanceSq = dSq; found = { x, y }; } }
+                     else { return { x, y }; } } } } return found;
+         }
+
+        // Function for jump
+        function jump() {
+             if (isJumping || quizModal.style.display === 'block' || isInCave || isInDpiaGame) return;
+             isJumping = true; const playerCell = gameWorld.querySelector(`.cell.player`);
+             if (playerCell) { playerCell.classList.add('jump'); setTimeout(() => { const c = gameWorld.querySelector(`.cell.player`); if (c) c.classList.remove('jump'); isJumping = false; }, 150); } else { isJumping = false; }
+         }
+
+        // Function interactWithStarVendor
+        function interactWithStarVendor() {
+            if (score >= starExchangeCost) {
+                score -= starExchangeCost;
+                maxHealth += healthIncreaseOnStar;
+                currentHealth = maxHealth;
+                updateScore();
+                updateHealthDisplay();
+                triggerStarEffect();
+                displayMessage(`Stjärnbyte! ✨ Kostnad: ${starExchangeCost}p. Max hälsa ökade till ${maxHealth}! Höken: Men vad roligt, heja dig!`, 4500);
+            } else {
+                displayMessage(`Du behöver ${starExchangeCost - score} poäng till för ett stjärnbyte!`, 3000);
+            }
+            activeVendor = null;
+        }
+
+        // Function triggerStarEffect
+        function triggerStarEffect() {
+            const numStars = 50; const colors = [getComputedStyle(document.documentElement).getPropertyValue('--star-color-1').trim(), getComputedStyle(document.documentElement).getPropertyValue('--star-color-2').trim(), getComputedStyle(document.documentElement).getPropertyValue('--star-color-3').trim(), getComputedStyle(document.documentElement).getPropertyValue('--star-color-4').trim(), getComputedStyle(document.documentElement).getPropertyValue('--color-complement').trim()];
+            for (let i = 0; i < numStars; i++) { const star = document.createElement('div'); star.classList.add('star-effect'); const startX = gameContainer.offsetWidth / 2 + (Math.random() - 0.5) * 50; const startY = gameContainer.offsetHeight / 2 + (Math.random() - 0.5) * 50; const angle = Math.random() * Math.PI * 2; const distance = 50 + Math.random() * 100; const targetX = Math.cos(angle) * distance; const targetY = Math.sin(angle) * distance + 80; const scale = 0.5 + Math.random() * 0.8; star.style.transform = `scale(${scale})`; star.style.setProperty('--tx', targetX); star.style.setProperty('--ty', targetY); star.style.left = `${startX}px`; star.style.top = `${startY}px`; star.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)]; star.style.animationDelay = `${Math.random() * 0.2}s`; gameContainer.appendChild(star); setTimeout(() => { star.remove(); }, 1200 + (Math.random() * 300)); }
+        }
+
+        // Function displayMessage
+        function displayMessage(text, duration = 2500) {
+            if (effectTimeout) { clearTimeout(effectTimeout); messageOverlay.style.animation = 'none'; void messageOverlay.offsetWidth; } messageOverlay.textContent = text; messageOverlay.style.display = 'block'; messageOverlay.style.animation = `fadeInOut ${duration / 1000}s ease-in-out forwards`; effectTimeout = setTimeout(() => { messageOverlay.style.display = 'none'; effectTimeout = null; }, duration);
+        }
+
+        // --- Quiz Functions ---
+        function startQuiz() {
+            console.log("Starting quiz..."); // DEBUG
+            if (questions.length === 0) { displayMessage("Inga fler frågor!", 2000); return; }
+            const qIndex = Math.floor(Math.random() * questions.length);
+            const currentQ = questions[qIndex];
+            if (!currentQ || !currentQ.answers || currentQ.correctAnswerIndex === undefined) { // Added check for correctAnswerIndex
+                console.error("Invalid question data:", currentQ);
+                displayMessage("Fel vid laddning av fråga.", 2000);
+                activeNPC = null; // Reset NPC interaction if question is invalid
+                return;
+            }
+            quizQuestion.textContent = currentQ.question;
+            quizAnswers.innerHTML = '';
+            quizFeedback.textContent = ''; quizFeedback.className = 'quiz-feedback';
+            closeQuizButton.style.display = 'none';
+
+            currentQ.answers.forEach((answer, index) => {
+                const li = document.createElement('li');
+                li.textContent = answer; // Show full answer text
+                li.dataset.index = index;
+                li.onclick = () => handleAnswer(index, currentQ.correctAnswerIndex, currentQ.explanation);
+                quizAnswers.appendChild(li);
+            });
+            quizModal.style.display = 'block';
+        }
+        function handleAnswer(selectedIndex, correctIndex, explanation) {
+            const answerItems = quizAnswers.querySelectorAll('li'); answerItems.forEach(item => { item.onclick = null; item.style.cursor = 'default'; });
+            const displayExplanation = explanation || "Inget facit angivet."; // Fallback explanation
+
+            if (selectedIndex === correctIndex) {
+                quizFeedback.classList.add('feedback-correct');
+                quizFeedback.textContent = `✅ Rätt! +${pointsPerCorrectAnswer}p. ${displayExplanation}`;
+                score += pointsPerCorrectAnswer; updateScore();
+                if(answerItems[selectedIndex]) answerItems[selectedIndex].style.border = '2px solid var(--color-feedback-correct)';
+            } else {
+                quizFeedback.classList.add('feedback-incorrect');
+                quizFeedback.textContent = `❌ Fel. ${displayExplanation}`;
+                if (answerItems[selectedIndex]) { answerItems[selectedIndex].style.border = '2px solid var(--color-feedback-incorrect)'; answerItems[selectedIndex].style.opacity = '0.7'; }
+                if (answerItems[correctIndex]) { answerItems[correctIndex].style.backgroundColor = 'var(--color-complement)'; answerItems[correctIndex].style.color = 'var(--color-text)'; answerItems[correctIndex].style.border = '2px solid var(--color-text)'; }
+            }
+            closeQuizButton.style.display = 'inline-block';
+        }
+        function closeQuiz() { quizModal.style.display = 'none'; activeNPC = null; }
+
+        // --- Score/Health Update Functions ---
+        function updateScore() { scoreBoard.textContent = `Poäng: ${score}`; }
+        function updateHealthDisplay() {
+             // console.log(`Updating health display: current=${currentHealth}, max=${maxHealth}`); // DEBUG
+             healthHearts.innerHTML = '';
+             if (maxHealth <= 0) return;
+             for (let i = 0; i < maxHealth; i++) {
+                 const heartSpan = document.createElement('span');
+                 heartSpan.classList.add('heart');
+                 heartSpan.textContent = '❤️';
+                 if (i >= currentHealth) {
+                     heartSpan.classList.add('empty');
+                 }
+                 healthHearts.appendChild(heartSpan);
+             }
+         }
+
+        // --- Cave 1 (Tillsyn) Minigame Functions ---
+        function startCaveMiniGame(entranceX, entranceY) {
+            console.log("Entering Tillsyn cave (Cave 1)...");
+            lastMapIdentifier = currentMapIdentifier; lastPlayerPos = { x: playerPos.x, y: playerPos.y };
+            caveEntrancePos = { x: entranceX, y: entranceY };
+            const startX = Math.floor(maps.cave1[0].length / 2) -1; const startY = maps.cave1.length - 2;
+            transitionMap('cave1', startX, startY); // transitionMap sets isInCave
+            currentHealth = maxHealth; updateHealthDisplay(); // Restore health specifically for cave 1
+            caveStartTime = Date.now();
+            fireWaveFrequency = 2500; fireMoveSpeed = 188;
+            currentFireWave = { positions: [], direction: 1, currentX: -1, wall: 'none' };
+            fireWarning = { active: false, side: 'none', timeout: null };
+            if (caveTimerInterval) clearInterval(caveTimerInterval); if (caveFireInterval) clearTimeout(caveFireInterval); if (moveFireInterval) clearInterval(moveFireInterval);
+            caveTimerInterval = setInterval(updateCaveTimer, 100);
+            scheduleNextFireWave();
+            displayMessage("Tillsyn!", 2000);
+            setTimeout(() => { if(isInCave) displayMessage(`Undvik elden! Överlev i ${caveSurviveTimeGoal} sekunder!`, 3000); }, 2100);
+        }
+        function updateCaveTimer() {
+            if (!isInCave) { clearInterval(caveTimerInterval); caveTimerDisplay.style.display = 'none'; return; } const elapsedTime = Math.floor((Date.now() - caveStartTime) / 1000); caveTimerDisplay.textContent = `Tid: ${elapsedTime}s / ${caveSurviveTimeGoal}s`; if (elapsedTime >= caveSurviveTimeGoal) { endCaveMiniGame(true); return; } checkCaveCollision(false);
+        }
+        function scheduleNextFireWave() {
+            if (!isInCave) return; if (caveFireInterval) clearTimeout(caveFireInterval); if (fireWarning.timeout) clearTimeout(fireWarning.timeout); const nextWall = Math.random() < 0.5 ? 'left' : 'right'; const warningDuration = 500; caveFireInterval = setTimeout(() => { if (!isInCave) return; fireWarning.active = true; fireWarning.side = nextWall; renderWorld(); fireWarning.timeout = setTimeout(() => { if (!isInCave) return; fireWarning.active = false; spawnFireWave(nextWall); fireWaveFrequency = Math.max(minFireWaveFrequency, fireWaveFrequency * fireFrequencyIncreaseFactor); fireMoveSpeed = Math.max(minFireMoveSpeed, fireMoveSpeed * fireMoveSpeedIncreaseFactor); scheduleNextFireWave(); }, warningDuration); }, fireWaveFrequency);
+        }
+        function spawnFireWave(startWall) {
+            if (!isInCave || !currentMap) return; /*console.log(`Spawning fire wave from ${startWall}.`);*/ const mapHeight = currentMap.length; const mapWidth = currentMap[0].length; const safeSpotsCount = Math.random() < 0.6 ? 1 : 2; let safeIndices = []; while(safeIndices.length < safeSpotsCount) { let randIndex = Math.floor(Math.random() * (mapHeight - 2)) + 1; if (!safeIndices.includes(randIndex)) { safeIndices.push(randIndex); } } currentFireWave.positions = []; currentFireWave.wall = startWall; currentFireWave.currentX = (startWall === 'left') ? 1 : mapWidth - 2; currentFireWave.direction = (startWall === 'left') ? 1 : -1; for (let y = 1; y < mapHeight - 1; y++) { if (!safeIndices.includes(y)) { currentFireWave.positions.push({ x: currentFireWave.currentX, y: y }); } } renderWorld(); startMovingFireWave();
+        }
+        function startMovingFireWave() {
+            if (moveFireInterval) clearInterval(moveFireInterval); moveFireInterval = setInterval(() => { if (!isInCave) { clearInterval(moveFireInterval); return; } currentFireWave.currentX += currentFireWave.direction; currentFireWave.positions.forEach(pos => { pos.x += currentFireWave.direction; }); const mapWidth = currentMap[0].length; const edgeReached = (currentFireWave.direction === 1 && currentFireWave.currentX >= mapWidth - 1) || (currentFireWave.direction === -1 && currentFireWave.currentX <= 0); if (edgeReached) { clearInterval(moveFireInterval); moveFireInterval = null; currentFireWave.positions = []; renderWorld(); } else { renderWorld(); checkCaveCollision(false); } }, fireMoveSpeed);
+        }
+        function checkCaveCollision(movedJustNow) {
+            if (!isInCave) return; const now = Date.now(); const isPlayerOnFire = currentFireWave.positions.some(pos => pos.x === playerPos.x && pos.y === playerPos.y); if (isPlayerOnFire) { if (now - lastFireDamageTime >= fireDamageInterval) { currentHealth--; lastFireDamageTime = now; updateHealthDisplay(); /*console.log(`Fire damage! Health: ${currentHealth}/${maxHealth}`);*/ gameContainer.style.animation = 'shake 0.2s'; setTimeout(() => { gameContainer.style.animation = ''; }, 200); if (currentHealth <= 0) { /*console.log("Health depleted!");*/ endCaveMiniGame(false); return; } } }
+        }
+        function stopCaveMiniGame() {
+            // console.log("Stopping Tillsyn cave (Cave 1) loops.");
+            if (!isInCave) return; isInCave = false; // Set flag first
+            if (caveTimerInterval) clearInterval(caveTimerInterval); if (caveFireInterval) clearTimeout(caveFireInterval); if (moveFireInterval) clearInterval(moveFireInterval); if (fireWarning.timeout) clearTimeout(fireWarning.timeout);
+            caveTimerInterval = null; caveFireInterval = null; moveFireInterval = null;
+            caveTimerDisplay.style.display = 'none';
+            currentFireWave = { positions: [], direction: 1, currentX: -1, wall: 'none' };
+            fireWarning = { active: false, side: 'none', timeout: null };
+        }
+        function endCaveMiniGame(success, exited = false) {
+            if (!isInCave && !exited) return; const wasInCave = isInCave; const healthDepleted = currentHealth <= 0;
+            stopCaveMiniGame(); // Ensure loops are stopped before proceeding
+            let penaltyApplied = false;
+            if (wasInCave && !exited) { if (success) { score += caveSurviveBonus; updateScore(); displayMessage(`Grattis! Du överlevde Tillsynen! +${caveSurviveBonus} poäng!`, 4000); } else { if (healthDepleted) { displayMessage("Game Over! Hälsan tog slut!", 2500); setTimeout(() => { displayMessage(`Sanktionsavgift! -${failurePointPenalty} poäng!`, 3000); }, 2600); score = Math.max(0, score - failurePointPenalty); updateScore(); penaltyApplied = true; } else { displayMessage("Aj aj! Du blev träffad av elden!", 3000); } } }
+            else if (exited) { displayMessage("Du lämnade Tillsyns-grottan.", 2000); }
+            const entranceOnWorld1 = findTile(14, maps.world1, caveEntrancePos.x, caveEntrancePos.y); let exitX = lastPlayerPos.x; let exitY = lastPlayerPos.y; if(entranceOnWorld1) { if(isWalkableOnMap(entranceOnWorld1.x, entranceOnWorld1.y + 1, maps.world1)) { exitX = entranceOnWorld1.x; exitY = entranceOnWorld1.y + 1; } }
+            const exitDelay = (success && wasInCave && !exited) ? 1000 : (penaltyApplied ? 5700 : 500);
+            setTimeout(() => { currentHealth = maxHealth; updateHealthDisplay(); transitionMap('world1', exitX, exitY); }, exitDelay);
+        }
+
+
+        // --- Cave 2 (DPIA) Minigame Functions ---
+        function startDpiaMiniGame(entranceX, entranceY) {
+            console.log("Entering DPIA cave (Cave 2)..."); // DEBUG
+            lastMapIdentifier = currentMapIdentifier; lastPlayerPos = { x: playerPos.x, y: playerPos.y };
+            cave2EntrancePos = { x: entranceX, y: entranceY };
+            const startX = Math.floor(maps.cave2[0].length / 2) - 1; const startY = maps.cave2.length - 2;
+            transitionMap('cave2', startX, startY); // This sets isInDpiaGame = true
+
+            // Reset DPIA game state
+            dpiaCorrectAnswersCount = 0;
+            dpiaQuestionActive = false; // Ensure player can move initially
+            dpiaFeedback.textContent = '';
+            dpiaFeedback.className = 'dpia-feedback';
+
+            // Choose and display creature
+            dpiaCreatureType = Math.random() < 0.5 ? 'robot' : 'alien';
+            dpiaCreature.textContent = dpiaCreatureType === 'robot' ? ROBOT : ALIEN;
+            // dpiaCreature.style.display = 'block'; // Visibility handled by renderWorld
+
+            // dpiaModal.style.display = 'block'; // Visibility handled by renderWorld
+            updateDpiaProgress();
+            showDpiaQuestion(); // Show the first question
+            displayMessage("DPIA-Utmaning!", 2000);
+        }
+
+        function stopDpiaMiniGame() {
+            console.log("Stopping DPIA cave (Cave 2) game."); // DEBUG
+            if (!isInDpiaGame) return;
+            isInDpiaGame = false; // Set flag first
+            // Hiding UI is handled by renderWorld based on the flag
+            dpiaCurrentRiskData = null;
+            dpiaQuestionActive = false;
+        }
+
+        function showDpiaQuestion() {
+            console.log("Attempting to show DPIA question..."); // DEBUG
+            if (!isInDpiaGame || dpiaCorrectAnswersCount >= dpiaCorrectAnswersNeeded) {
+                console.log("Not showing DPIA question (game not active or already won)."); // DEBUG
+                return;
+            }
+
+            try {
+                const randomIndex = Math.floor(Math.random() * dpiaData.length);
+                dpiaCurrentRiskData = dpiaData[randomIndex];
+                if (!dpiaCurrentRiskData || !dpiaCurrentRiskData.mitigation || !dpiaCurrentRiskData.risk) { // Validate data
+                    console.error("Invalid DPIA risk data fetched:", dpiaCurrentRiskData);
+                    dpiaRiskText.textContent = "Fel: Kunde inte ladda riskdata.";
+                    dpiaMitigationOptions.innerHTML = '';
+                    return;
+                }
+
+                const correctMitigation = dpiaCurrentRiskData.mitigation;
+                const riskText = dpiaCurrentRiskData.risk;
+                console.log(`Showing risk: "${riskText}", Correct mitigation: "${correctMitigation}"`); // DEBUG
+
+                // Get two incorrect mitigations
+                let incorrectOptions = [];
+                let attempts = 0;
+                while (incorrectOptions.length < 2 && attempts < dpiaData.length * 2) {
+                    const randomIncorrectIndex = Math.floor(Math.random() * dpiaData.length);
+                    if (randomIncorrectIndex !== randomIndex) {
+                        const potentialOption = dpiaData[randomIncorrectIndex].mitigation;
+                        if (potentialOption && !incorrectOptions.includes(potentialOption) && potentialOption !== correctMitigation) {
+                            incorrectOptions.push(potentialOption);
+                        }
+                    }
+                    attempts++;
+                }
+                 if (incorrectOptions.length < 2) {
+                     console.warn("Could not find enough unique incorrect options, might have duplicates.");
+                     while(incorrectOptions.length < 2 && attempts < dpiaData.length * 4) { // Increase attempts limit
+                         const randomIncorrectIndex = Math.floor(Math.random() * dpiaData.length);
+                         if (randomIncorrectIndex !== randomIndex) {
+                              const potentialOption = dpiaData[randomIncorrectIndex].mitigation;
+                              if(potentialOption) incorrectOptions.push(potentialOption); // Allow duplicates if necessary
+                         }
+                         attempts++;
+                     }
+                     // Ensure we always have 3 options even if duplicates exist
+                     while(incorrectOptions.length < 2) incorrectOptions.push("Alternativ saknas");
+                 }
+
+
+                let options = [correctMitigation, ...incorrectOptions];
+                options.sort(() => Math.random() - 0.5); // Shuffle
+
+                // Display risk and options
+                dpiaRiskText.textContent = riskText;
+                dpiaMitigationOptions.innerHTML = '';
+                dpiaFeedback.textContent = '';
+                dpiaFeedback.className = 'dpia-feedback';
+
+                options.forEach(optionText => {
+                    const button = document.createElement('button');
+                    button.classList.add('dpia-button');
+                    button.textContent = optionText;
+                    button.onclick = () => handleDpiaAnswer(optionText);
+                    dpiaMitigationOptions.appendChild(button);
+                });
+
+                dpiaQuestionActive = true; // Question is now active, player should answer
+                console.log("DPIA question displayed successfully."); // DEBUG
+            } catch (error) {
+                console.error("Error in showDpiaQuestion:", error);
+                dpiaRiskText.textContent = "Ett fel uppstod vid laddning av frågan.";
+                dpiaMitigationOptions.innerHTML = '';
+            }
+        }
+
+        function handleDpiaAnswer(selectedMitigation) {
+            if (!isInDpiaGame || !dpiaQuestionActive) return;
+            dpiaQuestionActive = false; // Disable answering immediately
+
+            // Ensure dpiaCurrentRiskData is valid before proceeding
+             if (!dpiaCurrentRiskData || !dpiaCurrentRiskData.mitigation) {
+                 console.error("handleDpiaAnswer called with invalid dpiaCurrentRiskData:", dpiaCurrentRiskData);
+                 // Maybe show an error or just try to show the next question after a delay
+                 setTimeout(showDpiaQuestion, 1500);
+                 return;
+             }
+
+            const correctMitigation = dpiaCurrentRiskData.mitigation;
+            const buttons = dpiaMitigationOptions.querySelectorAll('.dpia-button');
+            buttons.forEach(button => button.disabled = true);
+
+            if (selectedMitigation === correctMitigation) {
+                dpiaCorrectAnswersCount++;
+                dpiaFeedback.textContent = "✅ Korrekt åtgärd!";
+                dpiaFeedback.classList.add('feedback-correct');
+                updateDpiaProgress();
+
+                if (dpiaCorrectAnswersCount >= dpiaCorrectAnswersNeeded) {
+                    setTimeout(() => endDpiaMiniGame(true), 1500);
+                } else {
+                    setTimeout(showDpiaQuestion, 1500); // Show next question
+                }
+            } else {
+                dpiaFeedback.textContent = "❌ Fel åtgärd för denna risk.";
+                dpiaFeedback.classList.add('feedback-incorrect');
+                 buttons.forEach(button => { if (button.textContent === correctMitigation) { button.style.border = '3px solid var(--color-feedback-correct)'; } else if (button.textContent === selectedMitigation) { button.style.border = '3px solid var(--color-feedback-incorrect)'; button.style.opacity = '0.7'; } });
+                setTimeout(showDpiaQuestion, 2500); // Show next question after longer delay
+            }
+        }
+
+        function updateDpiaProgress() { dpiaProgress.textContent = `Framsteg: ${dpiaCorrectAnswersCount} / ${dpiaCorrectAnswersNeeded}`; }
+
+        function endDpiaMiniGame(success, exited = false) {
+            if (!isInDpiaGame && !exited) return; const wasInGame = isInDpiaGame;
+            stopDpiaMiniGame(); // Stop game loops, hide UI
+            if (wasInGame && !exited) { if (success) { score += dpiaWinBonus; updateScore(); displayMessage(`DPIA slutförd! Bra jobbat! +${dpiaWinBonus} poäng!`, 4000); } }
+            else if (exited) { displayMessage("Du lämnade DPIA-utmaningen.", 2000); }
+            const entranceOnWorld1 = findTile(17, maps.world1, cave2EntrancePos.x, cave2EntrancePos.y); let exitX = lastPlayerPos.x; let exitY = lastPlayerPos.y; if (entranceOnWorld1) { if (isWalkableOnMap(entranceOnWorld1.x, entranceOnWorld1.y + 1, maps.world1)) { exitX = entranceOnWorld1.x; exitY = entranceOnWorld1.y + 1; } }
+            const exitDelay = (success && wasInGame && !exited) ? 1000 : 500;
+            setTimeout(() => { transitionMap('world1', exitX, exitY); }, exitDelay);
+        }
+
+
+        // --- Resize Handler ---
+        function handleResize() {
+            let newTileSize = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--tile-size') || '40'); if (newTileSize !== TILE_SIZE) { TILE_SIZE = newTileSize; console.log("Tile size changed to:", TILE_SIZE); renderWorld(); }
+        }
+
+        // --- Event Listeners ---
+        document.addEventListener('keydown', (event) => {
+            // console.log(`Key pressed: ${event.key}, Code: ${event.code}, QuizOpen: ${quizModal.style.display === 'block'}, DPIA_Active: ${isInDpiaGame}, DPIA_Q_Active: ${dpiaQuestionActive}`); // DEBUG
+
+            // Block input if quiz modal is open
+            if (quizModal.style.display === 'block') {
+                if (event.key === 'Escape') closeQuiz();
+                return;
+            }
+
+            // Block movement if DPIA question is *actively waiting for an answer*
+            if (isInDpiaGame && dpiaQuestionActive) {
+                 // console.log("Movement blocked: DPIA question active."); // DEBUG
+                 return;
+            }
+
+            // Handle jump
+            if ((event.key === ' ' || event.code === 'Space') && !isJumping && !isInCave && !isInDpiaGame) {
+                event.preventDefault();
+                jump();
+                return;
+            }
+
+            // Handle movement
+            let dx = 0; let dy = 0;
+            switch (event.key.toLowerCase()) {
+                case 'w': case 'arrowup': dy = -1; break;
+                case 's': case 'arrowdown': dy = 1; break;
+                case 'a': case 'arrowleft': dx = -1; break;
+                case 'd': case 'arrowright': dx = 1; break;
+                default: return; // Ignore other keys
+            }
+            event.preventDefault(); // Prevent default scroll for arrow keys
+            movePlayer(dx, dy);
+        });
+        closeQuizButton.addEventListener('click', closeQuiz);
+        window.addEventListener('resize', handleResize);
+
+        // --- Initialization ---
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log("DOM Content Loaded - Initializing Game"); // DEBUG
+            try {
+                handleResize();
+                updateScore();
+                updateHealthDisplay(); // Ensure health is displayed on load
+                renderWorld();
+                displayMessage("Välkommen till GDPR-Simulatorn v6.4!", 3500);
+            } catch (error) {
+                console.error("Error during game initialization:", error);
+                document.body.innerHTML = `<p style="color: red; font-family: sans-serif;">Ett fel uppstod vid laddning av spelet. Kontrollera konsolen (F12) för detaljer.</p>`;
+            }
+        });
+
+    </script>
+
+</body>
+</html>
