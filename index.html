@@ -12,6 +12,8 @@
         /* Anpassad stil för Inter-fonten */
         body {
             font-family: 'Inter', sans-serif;
+            /* Lägg till lite padding till vänster för scrollindikatorn */
+             padding-left: 20px; /* Justera vid behov */
         }
         /* Liten animation för sektioner vid laddning */
         .fade-in-section {
@@ -40,57 +42,80 @@
             border: 2px solid transparent;
             animation: pulse-border 3s infinite ease-in-out;
         }
-
-        /* Anpassa pulsfärgen för den blå knappen */
-        .animated-border-button.blue-pulse {
-            animation-name: pulse-border-blue;
-        }
-
-        /* Anpassa pulsfärgen för den grå knappen */
-         .animated-border-button.gray-pulse {
-            animation-name: pulse-border-gray;
-        }
+        .animated-border-button.blue-pulse { animation-name: pulse-border-blue; }
+        .animated-border-button.gray-pulse { animation-name: pulse-border-gray; }
 
         @keyframes pulse-border-blue {
-            0%, 100% {
-                border-color: rgba(59, 130, 246, 0.5); /* Tailwind blue-500 med alpha */
-                box-shadow: 0 0 5px rgba(59, 130, 246, 0.3);
-            }
-            50% {
-                border-color: rgba(59, 130, 246, 1); /* Full blue-500 */
-                box-shadow: 0 0 15px rgba(59, 130, 246, 0.6);
-            }
+            0%, 100% { border-color: rgba(59, 130, 246, 0.5); box-shadow: 0 0 5px rgba(59, 130, 246, 0.3); }
+            50% { border-color: rgba(59, 130, 246, 1); box-shadow: 0 0 15px rgba(59, 130, 246, 0.6); }
         }
-
-         @keyframes pulse-border-gray {
-            0%, 100% {
-                border-color: rgba(107, 114, 128, 0.5); /* Tailwind gray-500 med alpha */
-                box-shadow: 0 0 5px rgba(107, 114, 128, 0.3);
-            }
-            50% {
-                border-color: rgba(107, 114, 128, 1); /* Full gray-500 */
-                box-shadow: 0 0 15px rgba(107, 114, 128, 0.6);
-            }
+        @keyframes pulse-border-gray {
+            0%, 100% { border-color: rgba(107, 114, 128, 0.5); box-shadow: 0 0 5px rgba(107, 114, 128, 0.3); }
+            50% { border-color: rgba(107, 114, 128, 1); box-shadow: 0 0 15px rgba(107, 114, 128, 0.6); }
         }
 
         /* Stil för att dölja och visa erfarenhetsdetaljer med transition */
         .experience-details-container {
             overflow: hidden;
-            transition: max-height 0.5s ease-in-out;
+            transition: max-height 0.5s ease-in-out, padding-top 0.5s ease-in-out, padding-bottom 0.5s ease-in-out; /* Addera padding transition */
             max-height: 0; /* Dold som standard */
+            padding-top: 0;
+            padding-bottom: 0;
         }
-
         .experience-details-container.expanded {
             /* max-height sätts dynamiskt med JS */
+             padding-top: 1rem; /* Lägg till lite padding när den är expanderad */
+             padding-bottom: 1rem;
+        }
+
+        /* Scroll Progress Indicator / Timeline */
+        #scroll-progress-container {
+            position: fixed;
+            left: 10px; /* Position från vänsterkanten */
+            top: 0;
+            width: 4px; /* Tjocklek på linjen */
+            height: 100%;
+            background-color: rgba(219, 234, 254, 0.3); /* Ljusblå bakgrund (Tailwind blue-100 med alpha) */
+            z-index: 50; /* Säkerställ att den ligger överst */
+        }
+        #scroll-progress-bar {
+            width: 100%;
+            height: 0; /* Höjden styrs av JS */
+            background-color: #3b82f6; /* Blå färg (Tailwind blue-500) */
+            transition: height 0.1s linear; /* Mjuk övergång för höjden */
+        }
+
+        /* Timeline Markers inom Erfarenhet */
+        .experience-item {
+            position: relative; /* Nödvändigt för att positionera markören */
+            padding-left: 25px; /* Ge plats för markören till vänster om kortet */
+        }
+        .timeline-marker {
+            position: absolute;
+            left: -8px; /* Positionera till vänster om padding, centrerad på scroll-linjen */
+            top: 1.5rem; /* Justera vertikal position (ungefär vid rubriken) */
+            width: 12px;
+            height: 12px;
+            background-color: #ffffff; /* Vit färg */
+            border: 2px solid #3b82f6; /* Blå kant (matchar scroll-bar) */
+            border-radius: 50%;
+            z-index: 51; /* Över scroll-linjen men under ev. modals */
+            opacity: 0; /* Dold som standard */
+            transition: opacity 0.5s ease-in-out; /* Mjuk övergång för synlighet */
+        }
+        .experience-details-container.expanded .timeline-marker {
+            opacity: 1; /* Synlig när sektionen är expanderad */
         }
 
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800 leading-relaxed">
 
-    <div class="container mx-auto p-6 md:p-12 max-w-4xl">
+    <div id="scroll-progress-container">
+        <div id="scroll-progress-bar"></div>
+    </div>
 
-        <header class="text-center mb-12 md:mb-16 fade-in-section">
+    <div class="container mx-auto p-6 md:p-12 max-w-4xl pl-10 md:pl-16"> <header class="text-center mb-12 md:mb-16 fade-in-section">
              <h1 class="text-4xl md:text-5xl font-bold text-gray-900 mb-2">Oskar Eriksson</h1>
             <p class="text-xl md:text-2xl text-blue-600 font-medium">Implementeringskonsult - Dataskydd & Legal Tech</p>
             <p class="mt-4 text-gray-600 max-w-2xl mx-auto">
@@ -137,32 +162,32 @@
 
             <div id="experience-details" class="experience-details-container">
                 <div class="space-y-8">
-                    <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300">
-                        <h3 class="text-xl font-semibold text-gray-900">Implementeringskonsult - Dataskydd & Legal Tech</h3>
+                    <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300 experience-item">
+                        <span class="timeline-marker"></span> <h3 class="text-xl font-semibold text-gray-900">Implementeringskonsult - Dataskydd & Legal Tech</h3>
                         <p class="text-blue-600 font-medium">Visma Draftit</p>
                         <p class="text-sm text-gray-500 mb-2">Mars 2025 - Nuvarande</p>
                         <p class="text-gray-700">
                             Hjälper kunder att implementera och förvalta lösningar för dataskydd (GDPR) och andra legala processer. Fokus på att skapa struktur, effektivitet och regelefterlevnad genom Visma Draftits verktyg och expertis.
                         </p>
                     </div>
-                    <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300">
-                        <h3 class="text-xl font-semibold text-gray-900">Innovationsledare</h3>
+                    <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300 experience-item">
+                         <span class="timeline-marker"></span> <h3 class="text-xl font-semibold text-gray-900">Innovationsledare</h3>
                         <p class="text-blue-600 font-medium">Karlstads kommun, Kommunledningskontoret</p>
                         <p class="text-sm text-gray-500 mb-2">ca. 2022 - 2025 (2.5 år)</p>
                          <p class="text-gray-700">
                             Ledde strategiska initiativ för att främja innovation inom kommunen. Arbetade med tjänstedesign, partnerskap, automation och AI. Utvecklade och höll utbildningar samt stöttade medarbetare och chefer i förändringsarbete.
                         </p>
                     </div>
-                     <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300">
-                        <h3 class="text-xl font-semibold text-gray-900">Projektledare</h3>
+                     <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300 experience-item">
+                         <span class="timeline-marker"></span> <h3 class="text-xl font-semibold text-gray-900">Projektledare</h3>
                         <p class="text-blue-600 font-medium">Karlstads kommun, Arbetsmarknads- och socialförvaltningen</p>
                         <p class="text-sm text-gray-500 mb-2">2019 - 2022</p>
                         <p class="text-gray-700">
                             Ledde flera utvecklingsprojekt. Bland annat ansvarig för införandet av en automationslösning för handläggningsprocessen av ekonomiskt bistånd, vilket resulterade i kortare ansökningsförfarande och ökad effektivitet. Ledde även samverkansprojektet "Kunskap mot segregation" där kartläggning och workshops ledde till nya strategiska initiativ.
                         </p>
                     </div>
-                     <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300">
-                        <h3 class="text-xl font-semibold text-gray-900">Socialsekreterare</h3>
+                     <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300 experience-item">
+                          <span class="timeline-marker"></span> <h3 class="text-xl font-semibold text-gray-900">Socialsekreterare</h3>
                         <p class="text-blue-600 font-medium">Karlstads kommun, Arbetsmarknads- och socialförvaltningen</p>
                         <p class="text-sm text-gray-500 mb-2">2015 - 2019</p>
                         <p class="text-gray-700">
@@ -205,7 +230,32 @@
         // Sätt aktuellt år i footern
         document.getElementById('current-year').textContent = new Date().getFullYear();
 
-        // Hantera expanderbar erfarenhetssektion
+        // --- Scroll Progress Indicator ---
+        const progressBar = document.getElementById('scroll-progress-bar');
+
+        function updateScrollProgress() {
+            // Hantera fallet där totalHeight är 0 (t.ex. om innehållet är kortare än fönstret)
+            const totalHeight = Math.max(document.documentElement.scrollHeight - document.documentElement.clientHeight, 1);
+            const scrollPosition = window.scrollY;
+            const scrollPercentage = Math.min((scrollPosition / totalHeight) * 100, 100); // Säkerställ max 100%
+
+            if (progressBar) {
+                // Använd requestAnimationFrame för mjukare uppdatering (valfritt men bra praxis)
+                window.requestAnimationFrame(() => {
+                    progressBar.style.height = scrollPercentage + '%';
+                });
+            }
+        }
+
+        // Uppdatera vid scroll och vid resize (om sidans höjd ändras)
+        window.addEventListener('scroll', updateScrollProgress, { passive: true }); // Använd passive listener för bättre scroll-prestanda
+        window.addEventListener('resize', updateScrollProgress);
+
+        // ÄNDRING: Kör en gång när sidan och ALLA resurser är fullt laddade
+        window.addEventListener('load', updateScrollProgress);
+
+
+        // --- Hantera expanderbar erfarenhetssektion ---
         const toggleButton = document.getElementById('toggle-experience-button');
         const experienceDetails = document.getElementById('experience-details');
 
@@ -216,38 +266,40 @@
                 if (isExpanded) {
                     // Dölj detaljer
                     experienceDetails.style.maxHeight = '0px';
+                    experienceDetails.style.paddingTop = '0';
+                    experienceDetails.style.paddingBottom = '0';
                     experienceDetails.classList.remove('expanded');
                     toggleButton.textContent = 'Visa Erfarenhet';
                 } else {
                     // Visa detaljer
-                    experienceDetails.classList.add('expanded');
-                    // Sätt max-height till innehållets faktiska höjd för transition
                     experienceDetails.style.maxHeight = experienceDetails.scrollHeight + 'px';
+                    experienceDetails.classList.add('expanded');
+                    experienceDetails.style.paddingTop = '';
+                    experienceDetails.style.paddingBottom = '';
                     toggleButton.textContent = 'Dölj Erfarenhet';
 
-                    // Återställ max-height efter transitionen för att tillåta dynamiskt innehåll
-                    // (om innehållet skulle kunna ändras medan det är öppet)
                     setTimeout(() => {
                         if (experienceDetails.classList.contains('expanded')) {
                              experienceDetails.style.maxHeight = 'none';
                         }
-                    }, 500); // Måste matcha transition duration i CSS
+                    }, 500); // Matcha transition duration
                 }
+
+                // ÄNDRING: Tvinga en uppdatering av scroll-indikatorn efter animationen
+                setTimeout(updateScrollProgress, 550); // Körs efter expand/collapse animationen (0.5s)
             });
 
-             // Säkerställ att max-height är 0 initialt (kan behövas om sidan laddas om snabbt)
+             // Säkerställ att max-height och padding är 0 initialt vid laddning
              experienceDetails.style.maxHeight = '0px';
+             experienceDetails.style.paddingTop = '0';
+             experienceDetails.style.paddingBottom = '0';
         }
 
         // Hantera hover-effekt på kort (om ytterligare JS-logik behövs)
         const cards = document.querySelectorAll('.hover\\:shadow-xl');
         cards.forEach(card => {
-            card.addEventListener('mouseenter', () => {
-                // Lägg till eventuell extra JS-logik här
-            });
-            card.addEventListener('mouseleave', () => {
-                // Lägg till eventuell extra JS-logik här
-            });
+            card.addEventListener('mouseenter', () => {});
+            card.addEventListener('mouseleave', () => {});
         });
     </script>
 
