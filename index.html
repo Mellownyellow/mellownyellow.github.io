@@ -3,68 +3,212 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Insikter och Lärdomar</title>
+    <title>Oskar Eriksson - Implementeringskonsult</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
-        /* Använd Inter som standardfont */
+        /* Anpassad stil för Inter-fonten */
         body {
             font-family: 'Inter', sans-serif;
         }
-        /* Liten anpassning för en mjukare känsla */
-        .content-area {
-             /* Du kan lägga till egna CSS-regler här om du vill finjustera */
+        /* Liten animation för sektioner vid laddning */
+        .fade-in-section {
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeIn 0.6s ease-out forwards;
+        }
+        @keyframes fadeIn {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        /* Applicera animation med fördröjning */
+        .fade-in-section:nth-child(1) { animation-delay: 0.1s; } /* Header */
+        .fade-in-section:nth-child(2) { animation-delay: 0.2s; } /* Projekt & Experiment */
+        .fade-in-section:nth-child(3) { animation-delay: 0.3s; } /* Om Mig */
+        .fade-in-section:nth-child(4) { animation-delay: 0.4s; } /* Erfarenhet */
+        .fade-in-section:nth-child(5) { animation-delay: 0.5s; } /* Kompetenser */
+        .fade-in-section:nth-child(6) { animation-delay: 0.6s; } /* Footer */
+
+        /* Animation för skimrande kant på knappen */
+        .shimmer-button {
+            position: relative; /* Nödvändigt för pseudo-elementet */
+            overflow: hidden; /* Döljer effekten utanför knappens gränser */
+        }
+
+        .shimmer-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%; /* Startar utanför till vänster */
+            width: 40%; /* Bredden på "skimret" */
+            height: 100%;
+            background: linear-gradient(
+                120deg,
+                rgba(255, 255, 255, 0) 0%,
+                rgba(255, 255, 255, 0.3) 50%, /* Ljusare i mitten */
+                rgba(255, 255, 255, 0) 100%
+            );
+            transform: skewX(-25deg); /* Lutar skimret lite */
+            animation: shimmer 3s infinite linear; /* Långsammare animation */
+             z-index: 1; /* Läggs ovanpå knappens bakgrund men under texten */
+        }
+         /* Animation för skimrande/pulserande tunn kant */
+        .animated-border-button {
+            position: relative;
+            z-index: 0; /* För att ::before ska kunna ligga bakom */
+            border: 2px solid transparent; /* Start med transparent kant */
+            animation: pulse-border 3s infinite ease-in-out;
+        }
+
+        @keyframes pulse-border {
+            0%, 100% {
+                border-color: rgba(59, 130, 246, 0.5); /* Start/slut färg (Tailwind blue-500 med alpha) */
+                 box-shadow: 0 0 5px rgba(59, 130, 246, 0.3);
+            }
+            50% {
+                border-color: rgba(59, 130, 246, 1); /* Mitten färg (full blue-500) */
+                box-shadow: 0 0 15px rgba(59, 130, 246, 0.6);
+            }
+        }
+
+        @keyframes shimmer {
+            0% {
+                left: -100%;
+            }
+            50%, 100% {
+                left: 120%; /* Rör sig över knappen och ut till höger */
+            }
         }
     </style>
 </head>
-<body class="bg-gray-50 text-gray-800 min-h-screen flex flex-col">
+<body class="bg-gray-50 text-gray-800 leading-relaxed">
 
-    <header class="bg-white shadow-sm">
-        <div class="container mx-auto px-6 py-4">
-            <h1 class="text-2xl font-bold text-gray-900">MellowYellows Insikter</h1>
-        </div>
-    </header>
+    <div class="container mx-auto p-6 md:p-12 max-w-4xl">
 
-    <main class="flex-grow container mx-auto px-6 py-12 content-area">
-        <div class="max-w-3xl mx-auto">
-
-             <h2 class="text-4xl font-bold mb-6 text-center text-gray-900">
-                Utforska skärningspunkter i och mellan det som för tillfället intresserar mig 🧠
-            </h2>
-             <p class="text-lg text-gray-700 mb-8 text-center">
-                Här delar jag med mig av lärdomar och insikter inom dataskydd, AI, utvecklingsfrågor och personlig produktivitet m.m.
+        <header class="text-center mb-12 md:mb-16 fade-in-section">
+             <h1 class="text-4xl md:text-5xl font-bold text-gray-900 mb-2">Oskar Eriksson</h1>
+            <p class="text-xl md:text-2xl text-blue-600 font-medium">Implementeringskonsult - Dataskydd & Legal Tech</p>
+            <p class="mt-4 text-gray-600 max-w-2xl mx-auto">
+                Nyfiken på skärningspunkten mellan teknik, juridik och innovation. Drivs av att skapa värde och förenkla komplexa processer.
             </p>
+        </header>
 
-            <div class="bg-white p-8 rounded-lg shadow-md mb-12">
-                <h3 class="text-2xl font-semibold mb-4 text-gray-800">Senaste tankar & Projekt</h3>
-                <div class="mt-6 border-t pt-6">
-                    <h4 class="text-xl font-medium text-blue-600 hover:underline"><a href="/ÄventyretKsdGDPRedition.html">Äventyret GDPR Edition</a></h4>
-                    <p class="text-gray-600 mt-2">Ett interaktivt spel/äventyr kring GDPR-frågor.</p>
-                </div>
-
-                 <div class="mt-6 border-t pt-6">
-                     <p class="text-gray-600 italic">
-                         Här samlas framtida tankar och projekt...
-                     </p>
-                 </div>
+        <section class="mb-12 md:mb-16 fade-in-section" id="projects">
+            <h2 class="text-2xl md:text-3xl font-bold text-gray-800 mb-6 border-l-4 border-blue-500 pl-4">Projekt & Experiment</h2>
+             <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300">
+                <h3 class="text-xl font-semibold text-gray-900 mb-2">HTML-spel & Reflektioner</h3>
+                 <p class="text-gray-700 mb-4">
+                     För att utforska möjligheterna med AI och visa att GDPR kan vara roligare än många tror 😉 så byggde jag med AI ett enkelt spel. Ett roligt sätt att lära sig och fundera kring hur teknik och dataskydd kan hänga ihop, även i små applikationer.
+                 </p>
+                 <a href="[LÄNK TILL DITT HOSTADE SPEL HÄR]" target="_blank" rel="noopener noreferrer" class="inline-block bg-blue-500 text-white font-medium py-2 px-4 rounded-lg hover:bg-blue-600 transition duration-300 animated-border-button">
+                    Testa spelet (Länk)
+                </a>
+                 <p class="text-sm text-gray-500 mt-3">
+                     Läs mer om tankarna bakom projektet i mitt <a href="[LÄNK TILL DITT LINKEDIN-INLÄGG HÄR]" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-800">LinkedIn-inlägg</a>.
+                 </p>
             </div>
+        </section>
 
-            <div class="text-center">
-                 <a href="https://www.linkedin.com/in/oskarsieriksson/" target="_blank" rel="noopener noreferrer" class="inline-block bg-blue-600 text-white font-semibold px-6 py-3 rounded-lg shadow hover:bg-blue-700 transition duration-300">
-                    Kontakta mig på LinkedIn
-                 </a>
-             </div>
+        <section class="mb-12 md:mb-16 fade-in-section" id="about">
+            <h2 class="text-2xl md:text-3xl font-bold text-gray-800 mb-6 border-l-4 border-blue-500 pl-4">Om Mig</h2>
+            <div class="space-y-4 text-gray-700">
+                <p>
+                    Med en bakgrund inom socialt arbete, projektledning och innovationsledning i offentlig sektor, har jag utvecklat en passion för att driva förändring och utveckling. Jag trivs i roller där jag får kombinera strategiskt tänkande med praktiskt genomförande.
+                </p>
+                <p>
+                    Sedan mars 2025 arbetar jag som implementeringskonsult på <a href="https://www.visma.se/draftit/" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-800 transition duration-300">Visma Draftit</a>, där jag hjälper organisationer att navigera i komplexa regelverk, särskilt inom dataskydd (GDPR) och legal tech. Det är en spännande miljö där jag får använda min erfarenhet för att hjälpa kunder att bygga säkra och effektiva processer.
+                 </p>
+                 <p>
+                    Jag tror starkt på lärande genom handling och utforskar gärna ny teknik, arbetssätt och metoder.
+                 </p>
+            </div>
+        </section>
 
-        </div>
-    </main>
+        <section class="mb-12 md:mb-16 fade-in-section" id="experience">
+            <h2 class="text-2xl md:text-3xl font-bold text-gray-800 mb-6 border-l-4 border-blue-500 pl-4">Erfarenhet (Urval)</h2>
+            <div class="space-y-8">
+                <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300">
+                    <h3 class="text-xl font-semibold text-gray-900">Implementeringskonsult - Dataskydd & Legal Tech</h3>
+                    <p class="text-blue-600 font-medium">Visma Draftit</p>
+                    <p class="text-sm text-gray-500 mb-2">Mars 2025 - Nuvarande</p>
+                    <p class="text-gray-700">
+                        Hjälper kunder att implementera och förvalta lösningar för dataskydd (GDPR) och andra legala processer. Fokus på att skapa struktur, effektivitet och regelefterlevnad genom Visma Draftits verktyg och expertis.
+                    </p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300">
+                    <h3 class="text-xl font-semibold text-gray-900">Innovationsledare</h3>
+                    <p class="text-blue-600 font-medium">Karlstads kommun, Kommunledningskontoret</p>
+                    <p class="text-sm text-gray-500 mb-2">ca. 2022 - 2025 (2.5 år)</p>
+                     <p class="text-gray-700">
+                        Ledde strategiska initiativ för att främja innovation inom kommunen. Arbetade med tjänstedesign, partnerskap, automation och AI. Utvecklade och höll utbildningar samt stöttade medarbetare och chefer i förändringsarbete.
+                    </p>
+                </div>
+                 <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300">
+                    <h3 class="text-xl font-semibold text-gray-900">Projektledare</h3>
+                    <p class="text-blue-600 font-medium">Karlstads kommun, Arbetsmarknads- och socialförvaltningen</p>
+                    <p class="text-sm text-gray-500 mb-2">2019 - 2022</p>
+                    <p class="text-gray-700">
+                        Ledde flera utvecklingsprojekt. Bland annat ansvarig för införandet av en automationslösning för handläggningsprocessen av ekonomiskt bistånd, vilket resulterade i kortare ansökningsförfarande och ökad effektivitet. Ledde även samverkansprojektet "Kunskap mot segregation" där kartläggning och workshops ledde till nya strategiska initiativ.
+                    </p>
+                </div>
+                 <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300">
+                    <h3 class="text-xl font-semibold text-gray-900">Socialsekreterare</h3>
+                    <p class="text-blue-600 font-medium">Karlstads kommun, Arbetsmarknads- och socialförvaltningen</p>
+                    <p class="text-sm text-gray-500 mb-2">2015 - 2019</p>
+                    <p class="text-gray-700">
+                        Arbetade med unga vuxna (18-25 år) kring bland annat försörjningsstöd, boendefrågor och behandlingsinsatser.
+                    </p>
+                </div>
+            </div>
+        </section>
 
-    <footer class="bg-white mt-12 py-6 border-t border-gray-200">
-        <div class="container mx-auto px-6 text-center text-gray-500 text-sm">
-            &copy; 2025 Oskar Eriksson. Alla rättigheter förbehållna.
-        </div>
-    </footer>
+        <section class="mb-12 md:mb-16 fade-in-section" id="skills">
+            <h2 class="text-2xl md:text-3xl font-bold text-gray-800 mb-6 border-l-4 border-blue-500 pl-4">Kompetenser & Intresseområden</h2>
+            <div class="flex flex-wrap gap-2">
+                <span class="bg-blue-100 text-blue-800 text-sm font-medium px-3 py-1 rounded-full">Dataskydd (GDPR)</span>
+                <span class="bg-blue-100 text-blue-800 text-sm font-medium px-3 py-1 rounded-full">Legal Tech</span>
+                <span class="bg-green-100 text-green-800 text-sm font-medium px-3 py-1 rounded-full">Implementering</span>
+                <span class="bg-green-100 text-green-800 text-sm font-medium px-3 py-1 rounded-full">SaaS</span>
+                <span class="bg-yellow-100 text-yellow-800 text-sm font-medium px-3 py-1 rounded-full">Innovationsledning</span>
+                <span class="bg-yellow-100 text-yellow-800 text-sm font-medium px-3 py-1 rounded-full">Projektledning</span>
+                <span class="bg-yellow-100 text-yellow-800 text-sm font-medium px-3 py-1 rounded-full">Tjänstedesign</span>
+                <span class="bg-purple-100 text-purple-800 text-sm font-medium px-3 py-1 rounded-full">Förändringsledning</span>
+                <span class="bg-purple-100 text-purple-800 text-sm font-medium px-3 py-1 rounded-full">AI & Automation</span>
+                 <span class="bg-gray-200 text-gray-800 text-sm font-medium px-3 py-1 rounded-full">Offentlig Sektor</span>
+            </div>
+        </section>
+
+        <footer class="text-center pt-8 border-t border-gray-200 fade-in-section">
+            <p class="text-gray-600 mb-4">Kontakta mig gärna eller connecta på LinkedIn:</p>
+            <a href="https://linkedin.com/in/oskarsieriksson" target="_blank" rel="noopener noreferrer" class="inline-block bg-gray-800 text-white font-medium py-2 px-5 rounded-lg hover:bg-gray-700 transition duration-300">
+                LinkedIn Profil
+            </a>
+            <p class="text-sm text-gray-400 mt-8">
+                &copy; <span id="current-year"></span> Oskar Eriksson
+            </p>
+        </footer>
+
+    </div>
+
+    <script>
+        // Enkel JS för att sätta aktuellt år i footern
+        document.getElementById('current-year').textContent = new Date().getFullYear();
+
+        // Liten interaktivitet: Gör korten lite större vid hover (redan hanterat med Tailwind)
+        const cards = document.querySelectorAll('.hover\\:shadow-xl');
+        cards.forEach(card => {
+            card.addEventListener('mouseenter', () => {
+                // Kan lägga till mer JS-interaktivitet här vid behov
+            });
+            card.addEventListener('mouseleave', () => {
+                // Kan lägga till mer JS-interaktivitet här vid behov
+            });
+        });
+    </script>
 
 </body>
 </html>
