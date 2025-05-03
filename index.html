@@ -33,56 +33,57 @@
         .fade-in-section:nth-child(5) { animation-delay: 0.5s; } /* Kompetenser */
         .fade-in-section:nth-child(6) { animation-delay: 0.6s; } /* Footer */
 
-        /* Animation för skimrande kant på knappen */
-        .shimmer-button {
-            position: relative; /* Nödvändigt för pseudo-elementet */
-            overflow: hidden; /* Döljer effekten utanför knappens gränser */
-        }
-
-        .shimmer-button::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%; /* Startar utanför till vänster */
-            width: 40%; /* Bredden på "skimret" */
-            height: 100%;
-            background: linear-gradient(
-                120deg,
-                rgba(255, 255, 255, 0) 0%,
-                rgba(255, 255, 255, 0.3) 50%, /* Ljusare i mitten */
-                rgba(255, 255, 255, 0) 100%
-            );
-            transform: skewX(-25deg); /* Lutar skimret lite */
-            animation: shimmer 3s infinite linear; /* Långsammare animation */
-             z-index: 1; /* Läggs ovanpå knappens bakgrund men under texten */
-        }
-         /* Animation för skimrande/pulserande tunn kant */
+        /* Animation för skimrande/pulserande tunn kant */
         .animated-border-button {
             position: relative;
-            z-index: 0; /* För att ::before ska kunna ligga bakom */
-            border: 2px solid transparent; /* Start med transparent kant */
+            z-index: 0;
+            border: 2px solid transparent;
             animation: pulse-border 3s infinite ease-in-out;
         }
 
-        @keyframes pulse-border {
+        /* Anpassa pulsfärgen för den blå knappen */
+        .animated-border-button.blue-pulse {
+            animation-name: pulse-border-blue;
+        }
+
+        /* Anpassa pulsfärgen för den grå knappen */
+         .animated-border-button.gray-pulse {
+            animation-name: pulse-border-gray;
+        }
+
+        @keyframes pulse-border-blue {
             0%, 100% {
-                border-color: rgba(59, 130, 246, 0.5); /* Start/slut färg (Tailwind blue-500 med alpha) */
-                 box-shadow: 0 0 5px rgba(59, 130, 246, 0.3);
+                border-color: rgba(59, 130, 246, 0.5); /* Tailwind blue-500 med alpha */
+                box-shadow: 0 0 5px rgba(59, 130, 246, 0.3);
             }
             50% {
-                border-color: rgba(59, 130, 246, 1); /* Mitten färg (full blue-500) */
+                border-color: rgba(59, 130, 246, 1); /* Full blue-500 */
                 box-shadow: 0 0 15px rgba(59, 130, 246, 0.6);
             }
         }
 
-        @keyframes shimmer {
-            0% {
-                left: -100%;
+         @keyframes pulse-border-gray {
+            0%, 100% {
+                border-color: rgba(107, 114, 128, 0.5); /* Tailwind gray-500 med alpha */
+                box-shadow: 0 0 5px rgba(107, 114, 128, 0.3);
             }
-            50%, 100% {
-                left: 120%; /* Rör sig över knappen och ut till höger */
+            50% {
+                border-color: rgba(107, 114, 128, 1); /* Full gray-500 */
+                box-shadow: 0 0 15px rgba(107, 114, 128, 0.6);
             }
         }
+
+        /* Stil för att dölja och visa erfarenhetsdetaljer med transition */
+        .experience-details-container {
+            overflow: hidden;
+            transition: max-height 0.5s ease-in-out;
+            max-height: 0; /* Dold som standard */
+        }
+
+        .experience-details-container.expanded {
+            /* max-height sätts dynamiskt med JS */
+        }
+
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800 leading-relaxed">
@@ -104,7 +105,7 @@
                  <p class="text-gray-700 mb-4">
                      För att utforska möjligheterna med AI och visa att GDPR kan vara roligare än många tror 😉 så byggde jag med AI ett enkelt spel. Ett roligt sätt att lära sig och fundera kring hur teknik och dataskydd kan hänga ihop, även i små applikationer.
                  </p>
-                 <a href="./ÄventyretKsdGDPRedition.html" target="_blank" rel="noopener noreferrer" class="inline-block bg-blue-500 text-white font-medium py-2 px-4 rounded-lg hover:bg-blue-600 transition duration-300 animated-border-button">
+                 <a href="./ÄventyretKsdGDPRedition.html" target="_blank" rel="noopener noreferrer" class="inline-block bg-blue-500 text-white font-medium py-2 px-4 rounded-lg hover:bg-blue-600 transition duration-300 animated-border-button blue-pulse">
                     Testa spelet (Länk)
                 </a>
                  <p class="text-sm text-gray-500 mt-3">
@@ -129,39 +130,45 @@
         </section>
 
         <section class="mb-12 md:mb-16 fade-in-section" id="experience">
-            <h2 class="text-2xl md:text-3xl font-bold text-gray-800 mb-6 border-l-4 border-blue-500 pl-4">Erfarenhet (Urval)</h2>
-            <div class="space-y-8">
-                <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300">
-                    <h3 class="text-xl font-semibold text-gray-900">Implementeringskonsult - Dataskydd & Legal Tech</h3>
-                    <p class="text-blue-600 font-medium">Visma Draftit</p>
-                    <p class="text-sm text-gray-500 mb-2">Mars 2025 - Nuvarande</p>
-                    <p class="text-gray-700">
-                        Hjälper kunder att implementera och förvalta lösningar för dataskydd (GDPR) och andra legala processer. Fokus på att skapa struktur, effektivitet och regelefterlevnad genom Visma Draftits verktyg och expertis.
-                    </p>
-                </div>
-                <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300">
-                    <h3 class="text-xl font-semibold text-gray-900">Innovationsledare</h3>
-                    <p class="text-blue-600 font-medium">Karlstads kommun, Kommunledningskontoret</p>
-                    <p class="text-sm text-gray-500 mb-2">ca. 2022 - 2025 (2.5 år)</p>
-                     <p class="text-gray-700">
-                        Ledde strategiska initiativ för att främja innovation inom kommunen. Arbetade med tjänstedesign, partnerskap, automation och AI. Utvecklade och höll utbildningar samt stöttade medarbetare och chefer i förändringsarbete.
-                    </p>
-                </div>
-                 <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300">
-                    <h3 class="text-xl font-semibold text-gray-900">Projektledare</h3>
-                    <p class="text-blue-600 font-medium">Karlstads kommun, Arbetsmarknads- och socialförvaltningen</p>
-                    <p class="text-sm text-gray-500 mb-2">2019 - 2022</p>
-                    <p class="text-gray-700">
-                        Ledde flera utvecklingsprojekt. Bland annat ansvarig för införandet av en automationslösning för handläggningsprocessen av ekonomiskt bistånd, vilket resulterade i kortare ansökningsförfarande och ökad effektivitet. Ledde även samverkansprojektet "Kunskap mot segregation" där kartläggning och workshops ledde till nya strategiska initiativ.
-                    </p>
-                </div>
-                 <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300">
-                    <h3 class="text-xl font-semibold text-gray-900">Socialsekreterare</h3>
-                    <p class="text-blue-600 font-medium">Karlstads kommun, Arbetsmarknads- och socialförvaltningen</p>
-                    <p class="text-sm text-gray-500 mb-2">2015 - 2019</p>
-                    <p class="text-gray-700">
-                        Arbetade med unga vuxna (18-25 år) kring bland annat försörjningsstöd, boendefrågor och behandlingsinsatser.
-                    </p>
+            <h2 class="text-2xl md:text-3xl font-bold text-gray-800 mb-4 border-l-4 border-blue-500 pl-4">Erfarenhet (Urval)</h2>
+            <button id="toggle-experience-button" class="inline-block bg-gray-600 text-white font-medium py-2 px-4 rounded-lg hover:bg-gray-700 transition duration-300 animated-border-button gray-pulse mb-6">
+                Visa Erfarenhet
+            </button>
+
+            <div id="experience-details" class="experience-details-container">
+                <div class="space-y-8">
+                    <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300">
+                        <h3 class="text-xl font-semibold text-gray-900">Implementeringskonsult - Dataskydd & Legal Tech</h3>
+                        <p class="text-blue-600 font-medium">Visma Draftit</p>
+                        <p class="text-sm text-gray-500 mb-2">Mars 2025 - Nuvarande</p>
+                        <p class="text-gray-700">
+                            Hjälper kunder att implementera och förvalta lösningar för dataskydd (GDPR) och andra legala processer. Fokus på att skapa struktur, effektivitet och regelefterlevnad genom Visma Draftits verktyg och expertis.
+                        </p>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300">
+                        <h3 class="text-xl font-semibold text-gray-900">Innovationsledare</h3>
+                        <p class="text-blue-600 font-medium">Karlstads kommun, Kommunledningskontoret</p>
+                        <p class="text-sm text-gray-500 mb-2">ca. 2022 - 2025 (2.5 år)</p>
+                         <p class="text-gray-700">
+                            Ledde strategiska initiativ för att främja innovation inom kommunen. Arbetade med tjänstedesign, partnerskap, automation och AI. Utvecklade och höll utbildningar samt stöttade medarbetare och chefer i förändringsarbete.
+                        </p>
+                    </div>
+                     <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300">
+                        <h3 class="text-xl font-semibold text-gray-900">Projektledare</h3>
+                        <p class="text-blue-600 font-medium">Karlstads kommun, Arbetsmarknads- och socialförvaltningen</p>
+                        <p class="text-sm text-gray-500 mb-2">2019 - 2022</p>
+                        <p class="text-gray-700">
+                            Ledde flera utvecklingsprojekt. Bland annat ansvarig för införandet av en automationslösning för handläggningsprocessen av ekonomiskt bistånd, vilket resulterade i kortare ansökningsförfarande och ökad effektivitet. Ledde även samverkansprojektet "Kunskap mot segregation" där kartläggning och workshops ledde till nya strategiska initiativ.
+                        </p>
+                    </div>
+                     <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300">
+                        <h3 class="text-xl font-semibold text-gray-900">Socialsekreterare</h3>
+                        <p class="text-blue-600 font-medium">Karlstads kommun, Arbetsmarknads- och socialförvaltningen</p>
+                        <p class="text-sm text-gray-500 mb-2">2015 - 2019</p>
+                        <p class="text-gray-700">
+                            Arbetade med unga vuxna (18-25 år) kring bland annat försörjningsstöd, boendefrågor och behandlingsinsatser.
+                        </p>
+                    </div>
                 </div>
             </div>
         </section>
@@ -195,17 +202,51 @@
     </div>
 
     <script>
-        // Enkel JS för att sätta aktuellt år i footern
+        // Sätt aktuellt år i footern
         document.getElementById('current-year').textContent = new Date().getFullYear();
 
-        // Liten interaktivitet: Gör korten lite större vid hover (redan hanterat med Tailwind)
+        // Hantera expanderbar erfarenhetssektion
+        const toggleButton = document.getElementById('toggle-experience-button');
+        const experienceDetails = document.getElementById('experience-details');
+
+        if (toggleButton && experienceDetails) {
+            toggleButton.addEventListener('click', () => {
+                const isExpanded = experienceDetails.classList.contains('expanded');
+
+                if (isExpanded) {
+                    // Dölj detaljer
+                    experienceDetails.style.maxHeight = '0px';
+                    experienceDetails.classList.remove('expanded');
+                    toggleButton.textContent = 'Visa Erfarenhet';
+                } else {
+                    // Visa detaljer
+                    experienceDetails.classList.add('expanded');
+                    // Sätt max-height till innehållets faktiska höjd för transition
+                    experienceDetails.style.maxHeight = experienceDetails.scrollHeight + 'px';
+                    toggleButton.textContent = 'Dölj Erfarenhet';
+
+                    // Återställ max-height efter transitionen för att tillåta dynamiskt innehåll
+                    // (om innehållet skulle kunna ändras medan det är öppet)
+                    setTimeout(() => {
+                        if (experienceDetails.classList.contains('expanded')) {
+                             experienceDetails.style.maxHeight = 'none';
+                        }
+                    }, 500); // Måste matcha transition duration i CSS
+                }
+            });
+
+             // Säkerställ att max-height är 0 initialt (kan behövas om sidan laddas om snabbt)
+             experienceDetails.style.maxHeight = '0px';
+        }
+
+        // Hantera hover-effekt på kort (om ytterligare JS-logik behövs)
         const cards = document.querySelectorAll('.hover\\:shadow-xl');
         cards.forEach(card => {
             card.addEventListener('mouseenter', () => {
-                // Kan lägga till mer JS-interaktivitet här vid behov
+                // Lägg till eventuell extra JS-logik här
             });
             card.addEventListener('mouseleave', () => {
-                // Kan lägga till mer JS-interaktivitet här vid behov
+                // Lägg till eventuell extra JS-logik här
             });
         });
     </script>
