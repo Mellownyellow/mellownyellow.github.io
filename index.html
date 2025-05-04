@@ -58,9 +58,9 @@
 
     <div class="content-container">
         <div class="text-center p-8">
-            <h1 class="text-4xl font-bold mb-10 text-gray-800">Välkommen!</h1>
+            <h1 class="text-6xl font-bold mb-12 text-gray-800">Välkommen!</h1>
             <a href="ÄventyretKsdGDPRedition.html"
-               class="inline-block bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-lg py-4 px-10 rounded-lg shadow-lg transition duration-300 ease-in-out transform hover:-translate-y-1 animate-pulse-emerald">
+               class="inline-block bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-2xl py-6 px-16 rounded-lg shadow-lg transition duration-300 ease-in-out transform hover:-translate-y-1 animate-pulse-emerald">
                 GDPR-Spel
             </a>
         </div>
@@ -97,6 +97,8 @@
 
         // Funktion för att sätta canvasstorlek och skapa prickar
         function init() {
+            // Kontrollera om canvas finns innan vi försöker använda den
+            if (!canvas) return;
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
             dots = []; // Rensa gamla prickar vid resize
@@ -116,6 +118,8 @@
 
         // Funktion för att rita en enskild prick
         function drawDot(dot) {
+            // Kontrollera om ctx är definierad
+            if (!ctx) return;
             ctx.beginPath();
             ctx.arc(dot.x, dot.y, dotRadius, 0, Math.PI * 2, false);
             ctx.fillStyle = dotColor;
@@ -124,8 +128,8 @@
 
         // Animationsloop
         function animate() {
-            // Kontrollera om canvas fortfarande finns i DOM (ifall den tas bort dynamiskt)
-            if (!canvas.isConnected) return;
+            // Kontrollera om canvas fortfarande finns i DOM och ctx är definierad
+            if (!canvas || !canvas.isConnected || !ctx) return;
 
             ctx.clearRect(0, 0, canvas.width, canvas.height); // Rensa canvas
 
@@ -185,10 +189,14 @@
 
         // Starta allt när sidan har laddats
         window.onload = function () {
-             init();
-             animate();
+             // Säkerställ att canvas finns innan init och animate anropas
+             if (canvas) {
+                 init();
+                 animate();
+             } else {
+                 console.error("Canvas element #dot-background not found.");
+             }
         }
-
 
     </script>
 </body>
