@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ÄventyretGDPRedition</title>
+    <title>GDPR Spel-Simulator v6.7</title>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <style>
         /* --- Färgschema & Grundläggande Stilar --- */
@@ -27,15 +27,21 @@
             --color-dpia-modal-bg: rgba(42, 42, 74, 0.95);
             --color-dpia-button: var(--color-primary-3);
             --color-dpia-button-hover: var(--color-secondary-2);
+            --mobile-button-bg: var(--color-primary-1);
+            --mobile-button-text: var(--color-background);
+            --mobile-button-border: var(--color-text);
+            --mobile-button-active-bg: var(--color-primary-2);
             --tile-size: 40px;
         }
 
         body {
             font-family: 'Press Start 2P', cursive; display: flex; flex-direction: column;
-            align-items: center; justify-content: center; min-height: 100vh;
+            align-items: center; justify-content: flex-start;
+            min-height: 100vh;
             background-color: var(--color-background); color: var(--color-text);
             margin: 0; padding: 20px; box-sizing: border-box;
             overflow-x: hidden;
+            padding-bottom: 120px;
         }
 
         #game-container {
@@ -121,7 +127,7 @@
             background-color: var(--color-primary-3); color: var(--color-text);
             padding: 12px; margin: 8px 0; border-radius: 5px; cursor: pointer;
             transition: background-color 0.2s ease; border: 2px solid var(--color-primary-2);
-            font-size: 0.9em; line-height: 1.3; text-align: left; /* Left align text in list items */
+            font-size: 0.9em; line-height: 1.3; text-align: left;
         }
         #quiz-modal li:hover { background-color: var(--color-secondary-2); }
         #quiz-feedback { margin-top: 20px; font-size: 0.9em; min-height: 50px; font-weight: bold; line-height: 1.4; }
@@ -189,7 +195,12 @@
             box-shadow: 0 0 20px rgba(0,0,0,0.5); text-align: center; box-sizing: border-box;
         }
         #dpia-modal h3 { margin-top: 0; margin-bottom: 10px; font-size: 1em; color: var(--color-complement); }
-        #dpia-risk-text { margin-bottom: 20px; font-size: 0.9em; line-height: 1.4; min-height: 40px; }
+        #dpia-risk-text { margin-bottom: 15px; font-size: 0.9em; line-height: 1.4; min-height: 40px; }
+        #dpia-instruction-text {
+            font-size: 0.8em;
+            margin-bottom: 15px;
+            color: var(--color-primary-3);
+        }
         #dpia-mitigation-options { display: flex; flex-direction: column; gap: 10px; align-items: center; margin-bottom: 15px; }
         .dpia-button {
             background-color: var(--color-dpia-button); color: var(--color-text);
@@ -202,6 +213,66 @@
         .dpia-button:disabled { opacity: 0.6; cursor: default; transform: none; background-color: #aaa; }
         #dpia-feedback { margin-top: 15px; font-size: 0.9em; min-height: 30px; font-weight: bold; line-height: 1.4; }
         #dpia-progress { font-size: 0.8em; margin-top: 10px; color: var(--color-primary-3); }
+
+        /* --- Mobile Controls --- */
+        #mobile-controls {
+            position: fixed;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: grid;
+            grid-template-areas:
+                ". up ."
+                "left down right"
+                ". jump .";
+            gap: 8px;
+            z-index: 100;
+            background-color: rgba(0, 0, 0, 0.1);
+            padding: 10px;
+            border-radius: 10px;
+        }
+
+        .mobile-button {
+            font-family: 'Press Start 2P', cursive;
+            font-size: 1.5em;
+            width: 60px;
+            height: 60px;
+            background-color: var(--mobile-button-bg);
+            color: var(--mobile-button-text);
+            border: 2px solid var(--mobile-button-border);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            transition: background-color 0.1s ease;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
+        }
+        .mobile-button:active {
+            background-color: var(--mobile-button-active-bg);
+            transform: scale(0.95);
+        }
+
+        #btn-up { grid-area: up; }
+        #btn-left { grid-area: left; }
+        #btn-down { grid-area: down; }
+        #btn-right { grid-area: right; }
+        #btn-jump { grid-area: jump; font-size: 1em; }
+
+        /* Hide mobile controls on larger screens */
+        @media (min-width: 768px) {
+            #mobile-controls {
+                display: none;
+            }
+            body {
+                 padding-bottom: 20px;
+            }
+        }
+
 
         /* --- Instruktionstext --- */
         .instructions {
@@ -220,9 +291,14 @@
              #quiz-modal li { padding: 10px; font-size: 0.8em; } #close-quiz { padding: 8px 15px; font-size: 0.8em; }
              .minimap-cell { width: 4px; height: 4px; } #minimap-container { top: 5px; right: 5px; padding: 3px;}
              #message-overlay { font-size: 0.9em; padding: 10px 20px; } #cave-timer-display { font-size: 0.9em; padding: 4px 10px; top: 5px; }
-             #dpia-modal { padding: 15px; bottom: 5%; } #dpia-modal h3 { font-size: 0.9em; }
-             #dpia-risk-text { font-size: 0.8em; } .dpia-button { padding: 10px 12px; font-size: 0.75em; }
+             #dpia-modal { padding: 15px; bottom: 130px; }
+             #dpia-modal h3 { font-size: 0.9em; }
+             #dpia-risk-text { font-size: 0.8em; margin-bottom: 10px; }
+             #dpia-instruction-text { font-size: 0.75em; margin-bottom: 10px; }
+             .dpia-button { padding: 10px 12px; font-size: 0.75em; }
              #dpia-creature { font-size: calc(var(--tile-size) * 1.8); } .instructions { font-size: 0.7em; }
+             .mobile-button { width: 50px; height: 50px; font-size: 1.3em; }
+             #btn-jump { font-size: 0.9em; }
         }
          @media (max-width: 450px) {
              h1 { font-size: 1.2em; } #score-board, #health-display { font-size: 0.8em; padding: 5px 10px; }
@@ -230,10 +306,13 @@
              #quiz-modal h3 { font-size: 0.9em; } #quiz-modal li { padding: 8px; font-size: 0.75em; }
              #close-quiz { padding: 6px 12px; font-size: 0.75em; } .minimap-cell { width: 3px; height: 3px; }
              #minimap-container { top: 3px; right: 3px; padding: 2px;} #message-overlay { font-size: 0.8em; padding: 8px 15px; }
-             #cave-timer-display { font-size: 0.8em; padding: 3px 8px; } #dpia-modal { padding: 10px; }
-             #dpia-modal h3 { font-size: 0.8em; } #dpia-risk-text { font-size: 0.75em; }
+             #cave-timer-display { font-size: 0.8em; padding: 3px 8px; } #dpia-modal { padding: 10px; bottom: 120px; }
+             #dpia-modal h3 { font-size: 0.8em; } #dpia-risk-text { font-size: 0.75em; margin-bottom: 8px; }
+             #dpia-instruction-text { font-size: 0.7em; margin-bottom: 8px; }
              .dpia-button { padding: 8px 10px; font-size: 0.7em; } #dpia-creature { font-size: calc(var(--tile-size) * 1.6); }
              .instructions { font-size: 0.65em; }
+             .mobile-button { width: 45px; height: 45px; font-size: 1.2em; }
+             #btn-jump { font-size: 0.8em; }
         }
 
         /* Shake animation */
@@ -243,7 +322,7 @@
 </head>
 <body>
 
-    <h1>ÄventyretKsdGDPRedition</h1> {/* Uppdaterad titel */}
+    <h1>GDPR Spel-Simulator v6.7</h1>
     <div id="ui-top-bar">
         <div id="score-board">Poäng: 0</div>
         <div id="health-display">Hälsa: <span id="health-hearts"></span></div>
@@ -265,14 +344,26 @@
         <div id="dpia-modal">
             <h3>Riskbedömning (DPIA)</h3>
             <div id="dpia-risk-text">Riskbeskrivning här...</div>
-            <div id="dpia-mitigation-options"></div>
+            <div id="dpia-instruction-text">Vilken eller vilka åtgärder motverkar risken?</div>
+            <div id="dpia-mitigation-options">
+                </div>
             <div id="dpia-feedback"></div>
             <div id="dpia-progress">Framsteg: 0 / 5</div>
         </div>
         <div id="message-overlay">Meddelande här</div>
     </div>
+
+     <div id="mobile-controls">
+         <button id="btn-up" class="mobile-button">▲</button>
+         <button id="btn-left" class="mobile-button">◄</button>
+         <button id="btn-down" class="mobile-button">▼</button>
+         <button id="btn-right" class="mobile-button">►</button>
+         <button id="btn-jump" class="mobile-button">Hoppa</button>
+     </div>
+
      <p class="instructions">
-         Använd WASD/Piltangenter för att flytta 🚶. Mellanslag för att hoppa (ej i grottor).
+         Använd WASD/Piltangenter eller knapparna på skärmen för att flytta 🚶.
+         Mellanslag/Hoppa-knapp för att hoppa (ej i grottor).
          Gå till 👮, 🏢, 🧑 för frågor (2p/rätt).
          Gå till 🌟 (och 🦅) för stjärnbyte (kostar 10p, ger +2 max hälsa).
          Gå till ⛰️ för Tillsyns-utmaning (undvik 🔥, överlev 30s för 8p, förlust ger -5p).
@@ -472,9 +563,16 @@
         const dpiaModal = document.getElementById('dpia-modal');
         const dpiaCreature = document.getElementById('dpia-creature');
         const dpiaRiskText = document.getElementById('dpia-risk-text');
+        const dpiaInstructionText = document.getElementById('dpia-instruction-text');
         const dpiaMitigationOptions = document.getElementById('dpia-mitigation-options');
         const dpiaFeedback = document.getElementById('dpia-feedback');
         const dpiaProgress = document.getElementById('dpia-progress');
+        // Mobile Buttons
+        const btnUp = document.getElementById('btn-up');
+        const btnLeft = document.getElementById('btn-left');
+        const btnDown = document.getElementById('btn-down');
+        const btnRight = document.getElementById('btn-right');
+        const btnJump = document.getElementById('btn-jump');
 
 
         // --- Game Functions ---
@@ -830,10 +928,10 @@
             if (questions.length === 0) { displayMessage("Inga fler frågor!", 2000); return; }
             const qIndex = Math.floor(Math.random() * questions.length);
             const currentQ = questions[qIndex];
-            if (!currentQ || !currentQ.answers || currentQ.correctAnswerIndex === undefined) { // Added check for correctAnswerIndex
+            if (!currentQ || !currentQ.answers || currentQ.correctAnswerIndex === undefined) {
                 console.error("Invalid question data:", currentQ);
                 displayMessage("Fel vid laddning av fråga.", 2000);
-                activeNPC = null; // Reset NPC interaction if question is invalid
+                activeNPC = null;
                 return;
             }
             quizQuestion.textContent = currentQ.question;
@@ -843,7 +941,7 @@
 
             currentQ.answers.forEach((answer, index) => {
                 const li = document.createElement('li');
-                li.textContent = answer; // Show full answer text
+                li.textContent = answer;
                 li.dataset.index = index;
                 li.onclick = () => handleAnswer(index, currentQ.correctAnswerIndex, currentQ.explanation);
                 quizAnswers.appendChild(li);
@@ -852,7 +950,7 @@
         }
         function handleAnswer(selectedIndex, correctIndex, explanation) {
             const answerItems = quizAnswers.querySelectorAll('li'); answerItems.forEach(item => { item.onclick = null; item.style.cursor = 'default'; });
-            const displayExplanation = explanation || "Inget facit angivet."; // Fallback explanation
+            const displayExplanation = explanation || "Inget facit angivet.";
 
             if (selectedIndex === correctIndex) {
                 quizFeedback.classList.add('feedback-correct');
@@ -984,7 +1082,7 @@
             try {
                 const randomIndex = Math.floor(Math.random() * dpiaData.length);
                 dpiaCurrentRiskData = dpiaData[randomIndex];
-                if (!dpiaCurrentRiskData || !dpiaCurrentRiskData.mitigation || !dpiaCurrentRiskData.risk) { // Validate data
+                if (!dpiaCurrentRiskData || !dpiaCurrentRiskData.mitigation || !dpiaCurrentRiskData.risk) {
                     console.error("Invalid DPIA risk data fetched:", dpiaCurrentRiskData);
                     dpiaRiskText.textContent = "Fel: Kunde inte ladda riskdata.";
                     dpiaMitigationOptions.innerHTML = '';
@@ -1010,15 +1108,14 @@
                 }
                  if (incorrectOptions.length < 2) {
                      console.warn("Could not find enough unique incorrect options, might have duplicates.");
-                     while(incorrectOptions.length < 2 && attempts < dpiaData.length * 4) { // Increase attempts limit
+                     while(incorrectOptions.length < 2 && attempts < dpiaData.length * 4) {
                          const randomIncorrectIndex = Math.floor(Math.random() * dpiaData.length);
                          if (randomIncorrectIndex !== randomIndex) {
                               const potentialOption = dpiaData[randomIncorrectIndex].mitigation;
-                              if(potentialOption) incorrectOptions.push(potentialOption); // Allow duplicates if necessary
+                              if(potentialOption) incorrectOptions.push(potentialOption);
                          }
                          attempts++;
                      }
-                     // Ensure we always have 3 options even if duplicates exist
                      while(incorrectOptions.length < 2) incorrectOptions.push("Alternativ saknas");
                  }
 
@@ -1028,10 +1125,27 @@
 
                 // Display risk and options
                 dpiaRiskText.textContent = riskText;
-                dpiaMitigationOptions.innerHTML = '';
+                dpiaMitigationOptions.innerHTML = ''; // Clear previous buttons
                 dpiaFeedback.textContent = '';
                 dpiaFeedback.className = 'dpia-feedback';
 
+                // Add instruction text before buttons (ensure it's only added once)
+                if (dpiaInstructionText) {
+                    dpiaInstructionText.textContent = "Vilken eller vilka åtgärder motverkar risken?";
+                    // Ensure it's placed correctly if it wasn't already
+                    if (!dpiaMitigationOptions.contains(dpiaInstructionText)) {
+                         dpiaModal.insertBefore(dpiaInstructionText, dpiaMitigationOptions);
+                    }
+                } else {
+                    // Fallback if element not found (shouldn't happen with correct HTML)
+                    const instructionP = document.createElement('p');
+                    instructionP.id = 'dpia-instruction-text';
+                    instructionP.textContent = "Vilken eller vilka åtgärder motverkar risken?";
+                    dpiaModal.insertBefore(instructionP, dpiaMitigationOptions); // Insert before options div
+                }
+
+
+                // Add buttons inside the options div
                 options.forEach(optionText => {
                     const button = document.createElement('button');
                     button.classList.add('dpia-button');
@@ -1053,10 +1167,8 @@
             if (!isInDpiaGame || !dpiaQuestionActive) return;
             dpiaQuestionActive = false; // Disable answering immediately
 
-            // Ensure dpiaCurrentRiskData is valid before proceeding
              if (!dpiaCurrentRiskData || !dpiaCurrentRiskData.mitigation) {
                  console.error("handleDpiaAnswer called with invalid dpiaCurrentRiskData:", dpiaCurrentRiskData);
-                 // Maybe show an error or just try to show the next question after a delay
                  setTimeout(showDpiaQuestion, 1500);
                  return;
              }
@@ -1103,20 +1215,27 @@
         }
 
         // --- Event Listeners ---
+        // Keyboard Listener
         document.addEventListener('keydown', (event) => {
             // console.log(`Key pressed: ${event.key}, Code: ${event.code}, QuizOpen: ${quizModal.style.display === 'block'}, DPIA_Active: ${isInDpiaGame}, DPIA_Q_Active: ${dpiaQuestionActive}`); // DEBUG
 
-            // Block input if quiz modal is open
-            if (quizModal.style.display === 'block') {
-                if (event.key === 'Escape') closeQuiz();
-                return;
+            // Handle Escape key first for modals/caves
+            if (event.key === 'Escape') {
+                if (quizModal.style.display === 'block') {
+                    closeQuiz();
+                    return; // Stop further processing
+                }
+                if (isInDpiaGame) {
+                    console.log("Escape pressed in DPIA cave - exiting."); // DEBUG
+                    endDpiaMiniGame(false, true); // Exit cave manually
+                    return; // Stop further processing
+                }
+                // Could add Escape for Cave 1 too if desired
             }
 
-            // Block movement if DPIA question is *actively waiting for an answer*
-            if (isInDpiaGame && dpiaQuestionActive) {
-                 // console.log("Movement blocked: DPIA question active."); // DEBUG
-                 return;
-            }
+            // Block movement if quiz modal is open OR if DPIA question is active
+            if (quizModal.style.display === 'block') { return; }
+            if (isInDpiaGame && dpiaQuestionActive) { return; }
 
             // Handle jump
             if ((event.key === ' ' || event.code === 'Space') && !isJumping && !isInCave && !isInDpiaGame) {
@@ -1137,6 +1256,36 @@
             event.preventDefault(); // Prevent default scroll for arrow keys
             movePlayer(dx, dy);
         });
+
+        // Mobile Button Listeners
+        function handleMobileMove(dx, dy) {
+             if (quizModal.style.display === 'block') return; // Ignore if quiz open
+             if (isInDpiaGame && dpiaQuestionActive) return; // Ignore if DPIA question active
+             movePlayer(dx, dy);
+        }
+        function handleMobileJump() {
+            if (quizModal.style.display === 'block') return; // Ignore if quiz open
+            if (isInDpiaGame && dpiaQuestionActive) return; // Ignore if DPIA question active
+            jump();
+        }
+
+        // Use both click and touchstart for better compatibility
+        btnUp.addEventListener('click', () => handleMobileMove(0, -1));
+        btnUp.addEventListener('touchstart', (e) => { e.preventDefault(); handleMobileMove(0, -1); });
+
+        btnDown.addEventListener('click', () => handleMobileMove(0, 1));
+        btnDown.addEventListener('touchstart', (e) => { e.preventDefault(); handleMobileMove(0, 1); });
+
+        btnLeft.addEventListener('click', () => handleMobileMove(-1, 0));
+        btnLeft.addEventListener('touchstart', (e) => { e.preventDefault(); handleMobileMove(-1, 0); });
+
+        btnRight.addEventListener('click', () => handleMobileMove(1, 0));
+        btnRight.addEventListener('touchstart', (e) => { e.preventDefault(); handleMobileMove(1, 0); });
+
+        btnJump.addEventListener('click', handleMobileJump);
+        btnJump.addEventListener('touchstart', (e) => { e.preventDefault(); handleMobileJump(); });
+
+
         closeQuizButton.addEventListener('click', closeQuiz);
         window.addEventListener('resize', handleResize);
 
@@ -1148,7 +1297,7 @@
                 updateScore();
                 updateHealthDisplay(); // Ensure health is displayed on load
                 renderWorld();
-                displayMessage("Välkommen till GDPR-Simulatorn v6.4!", 3500);
+                displayMessage("Välkommen till GDPR-Simulatorn v6.7!", 3500);
             } catch (error) {
                 console.error("Error during game initialization:", error);
                 document.body.innerHTML = `<p style="color: red; font-family: sans-serif;">Ett fel uppstod vid laddning av spelet. Kontrollera konsolen (F12) för detaljer.</p>`;
