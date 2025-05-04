@@ -24,19 +24,172 @@
         /* Använder Inter-fonten som standard */
         body {
             font-family: 'Inter', sans-serif;
+            margin: 0; /* Ta bort default body margin */
+            overflow: hidden; /* Förhindra scrollbars orsakade av canvas */
+        }
+
+        /* Stil för canvas-bakgrunden */
+        #dot-background {
+            position: fixed; /* Täcker hela viewporten */
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1; /* Placera bakom allt annat innehåll */
+            background-color: #f3f4f6; /* bg-gray-100 */
+        }
+
+        /* Säkerställ att innehållet ligger ovanför canvas */
+        .content-container {
+            position: relative; /* Krävs för att z-index ska fungera mot fixed canvas */
+            z-index: 1;
+            min-height: 100vh; /* Se till att containern tar upp hela höjden */
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
     </style>
     <link rel="preconnect" href="https://fonts.googleapis.com">
      <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
      <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
 </head>
-<body class="bg-gray-100 flex items-center justify-center min-h-screen">
-    <div class="text-center p-8">
-        <h1 class="text-3xl font-bold mb-8 text-gray-800">Välkommen!</h1>
-        <a href="ÄventyretKsdGDPRedition.html"
-           class="inline-block bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-8 rounded-lg shadow-lg transition duration-300 ease-in-out transform hover:-translate-y-1 animate-pulse-emerald">
-            GDPR-Spel
-        </a>
+<body>
+    <canvas id="dot-background"></canvas>
+
+    <div class="content-container">
+        <div class="text-center p-8">
+            <h1 class="text-4xl font-bold mb-10 text-gray-800">Välkommen!</h1>
+            <a href="ÄventyretKsdGDPRedition.html"
+               class="inline-block bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-lg py-4 px-10 rounded-lg shadow-lg transition duration-300 ease-in-out transform hover:-translate-y-1 animate-pulse-emerald">
+                GDPR-Spel
+            </a>
+        </div>
     </div>
+
+    <script>
+        const canvas = document.getElementById('dot-background');
+        const ctx = canvas.getContext('2d');
+
+        // Muspekarens position
+        let mouse = {
+            x: null,
+            y: null,
+            radius: 100 // Interaktionsradie runt muspekaren
+        };
+
+        // Lyssnare för musrörelse
+        window.addEventListener('mousemove', (event) => {
+            mouse.x = event.clientX;
+            mouse.y = event.clientY;
+        });
+        // Återställ musposition när den lämnar fönstret
+         window.addEventListener('mouseout', () => {
+            mouse.x = null;
+            mouse.y = null;
+        });
+
+
+        let dots = [];
+        const dotColor = 'rgba(156, 163, 175, 0.5)'; // Ljusgrå färg (gray-400 med transparens)
+        const dotRadius = 1.5; // Små prickar
+        const dotSpacing = 40; // Avstånd mellan prickar
+        const pushForce = 5; // Hur mycket prickarna "puttas" undan
+
+        // Funktion för att sätta canvasstorlek och skapa prickar
+        function init() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            dots = []; // Rensa gamla prickar vid resize
+
+            // Skapa ett rutnät av prickar
+            for (let x = dotSpacing / 2; x < canvas.width; x += dotSpacing) {
+                for (let y = dotSpacing / 2; y < canvas.height; y += dotSpacing) {
+                    dots.push({
+                        baseX: x, // Original X-position
+                        baseY: y, // Original Y-position
+                        x: x,     // Nuvarande X (för ritning)
+                        y: y      // Nuvarande Y (för ritning)
+                    });
+                }
+            }
+        }
+
+        // Funktion för att rita en enskild prick
+        function drawDot(dot) {
+            ctx.beginPath();
+            ctx.arc(dot.x, dot.y, dotRadius, 0, Math.PI * 2, false);
+            ctx.fillStyle = dotColor;
+            ctx.fill();
+        }
+
+        // Animationsloop
+        function animate() {
+            // Kontrollera om canvas fortfarande finns i DOM (ifall den tas bort dynamiskt)
+            if (!canvas.isConnected) return;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height); // Rensa canvas
+
+            dots.forEach(dot => {
+                let dx = 0;
+                let dy = 0;
+                let distance = Infinity;
+
+                // Om musen är inom canvas, beräkna avstånd till pricken
+                if (mouse.x !== null && mouse.y !== null) {
+                    dx = mouse.x - dot.baseX; // Skillnad från prickens *originalposition*
+                    dy = mouse.y - dot.baseY;
+                    distance = Math.sqrt(dx * dx + dy * dy);
+                }
+
+                // Om pricken är inom musens interaktionsradie
+                if (distance < mouse.radius) {
+                    // Beräkna kraften (starkare närmare, avtar snabbt)
+                    const forceDirectionX = dx / distance;
+                    const forceDirectionY = dy / distance;
+                    // Ju närmare musen, desto större förskjutning (max 'pushForce')
+                    // (1 - distance / mouse.radius) ger 1 vid centrum, 0 vid kanten
+                    const force = (1 - distance / mouse.radius) * pushForce;
+
+                    // Flytta pricken *bort* från musen (negativ riktning)
+                    dot.x = dot.baseX - forceDirectionX * force;
+                    dot.y = dot.baseY - forceDirectionY * force;
+
+                } else {
+                    // Om utanför radien, återgå sakta till originalposition (enkel "ease out")
+                    // Lägg till en liten tröskel för att undvika oändlig easing på små skillnader
+                    if (Math.abs(dot.baseX - dot.x) > 0.01 || Math.abs(dot.baseY - dot.y) > 0.01) {
+                        dot.x += (dot.baseX - dot.x) * 0.1;
+                        dot.y += (dot.baseY - dot.y) * 0.1;
+                    } else {
+                        dot.x = dot.baseX;
+                        dot.y = dot.baseY;
+                    }
+                }
+
+                // Rita pricken på dess nuvarande (möjligen förskjutna) position
+                drawDot(dot);
+            });
+
+            requestAnimationFrame(animate); // Fortsätt animationen
+        }
+
+        // Hantera fönsterstorleksändring
+        window.addEventListener('resize', () => {
+            // Lägg till en liten debounce för att undvika för många init-anrop vid snabb resize
+            let resizeTimer;
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(() => {
+                init(); // Kör init igen för att anpassa canvas och prickar
+            }, 100); // Vänta 100ms efter senaste resize-eventet
+        });
+
+        // Starta allt när sidan har laddats
+        window.onload = function () {
+             init();
+             animate();
+        }
+
+
+    </script>
 </body>
 </html>
